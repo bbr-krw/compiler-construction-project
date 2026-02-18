@@ -1,0 +1,1 @@
+print 'single quoted string'
