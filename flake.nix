@@ -35,6 +35,9 @@
             echo "  bison $(bison --version | head -1)"
             echo "  flex  $(flex --version)"
           '';
+
+          CMAKE_CXX_COMPILER="${pkgs.gcc}/bin/g++";
+          CMAKE_CC_COMPILER="${pkgs.gcc}/bin/gcc";
         };
       }
     );
