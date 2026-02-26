@@ -60,42 +60,46 @@ void Lexer::ungetch(char c) {
 }
 
 void Lexer::next_line() {
-    _location.line++;
-    _location.col = 1;
+    _end_location.line++;
+    _end_location.col = 1;
 
-    if (_line_size.size() <= _location.line) {
-        assert(_line_size.size() == _location.line);
+    if (_line_size.size() <= _end_location.line) {
+        assert(_line_size.size() == _end_location.line);
 
         _line_size.push_back(1);
     }
 }
 
 void Lexer::next_col() {
-    assert(_location.line < _line_size.size());
-    _location.col++;
+    assert(_end_location.line < _line_size.size());
+    _end_location.col++;
 
-    int& line_size = _line_size[_location.line];
-    line_size      = std::max(line_size, _location.col);
+    int& line_size = _line_size[_end_location.line];
+    line_size      = std::max(line_size, _end_location.col);
 }
 
 void Lexer::prev_line() {
-    assert(_location.line > 1 && _location.line < _line_size.size());
+    assert(_end_location.line > 1 && _end_location.line < _line_size.size());
 
-    _location.line--;
-    _location.col = _line_size[_location.line];
+    _end_location.line--;
+    _end_location.col = _line_size[_end_location.line];
 }
 
 void Lexer::prev_col() {
-    assert(_location.col > 0);
-    _location.col--;
+    assert(_end_location.col > 0);
+    _end_location.col--;
 }
 
-Lexer::Location Lexer::location() const {
+Lexer::Location Lexer::begin_location() const {
     return _begin_location;
 }
 
+Lexer::Location Lexer::end_location() const {
+    return _end_location;
+}
+
 yy::parser::symbol_type Lexer::next() {
-    _begin_location = _location;
+    _begin_location = _end_location;
 
     int c;
 
@@ -116,7 +120,7 @@ yy::parser::symbol_type Lexer::next() {
         if (!isspace(c)) {
             break;
         }
-        _begin_location = _location;
+        _begin_location = _end_location;
     }
 
     if (c == EOF)
