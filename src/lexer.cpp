@@ -10,7 +10,7 @@
 #include <string>
 #include <unordered_map>
 
-static std::unordered_map<std::string, yy::parser::symbol_type (*)()> keywords = {
+static std::unordered_map<std::string, yy::parser::symbol_type (*)()> make_keyword = {
     {"var", yy::parser::make_TOK_VAR},
     {"if", yy::parser::make_TOK_IF},
     {"then", yy::parser::make_TOK_THEN},
@@ -91,20 +91,32 @@ void Lexer::prev_col() {
 }
 
 Lexer::Location Lexer::location() const {
-    return _visible_location;
+    return _begin_location;
 }
 
 yy::parser::symbol_type Lexer::next() {
-    _visible_location = _location;
+    _begin_location = _location;
 
     int c;
 
-    /* Skip whitespace */
+    /* Skip whitespace and commentaries */
     while ((c = getch()) != EOF) {
+        if (c == '/') {
+            if ((c = getch()) == '/') {
+                // find comment, move cursor to next line or EOF
+                do {
+                    c = getch();
+                } while (c != '\n' && c != EOF);
+            } else {
+                // rollback, assume '/' is a part of token
+                ungetch(c);
+                c = '/';
+            }
+        }
         if (!isspace(c)) {
             break;
         }
-        _visible_location = _location;
+        _begin_location = _location;
     }
 
     if (c == EOF)
@@ -132,8 +144,8 @@ yy::parser::symbol_type Lexer::next() {
             return yy::parser::make_TOK_FALSE(0);
         }
 
-        auto it = keywords.find(text);
-        if (it != keywords.end()) {
+        auto it = make_keyword.find(text);
+        if (it != make_keyword.end()) {
             return it->second();
         }
 
@@ -232,6 +244,9 @@ yy::parser::symbol_type Lexer::next() {
         int n = getch();
         if (n == '=')
             return yy::parser::make_TOK_NEQ();
+        if (n == '/') {
+            while ((c = getch()) != '\n');
+        }
         ungetch(n);
         return yy::parser::make_TOK_SLASH();
     }

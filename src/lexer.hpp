@@ -26,7 +26,7 @@ private:
     std::istream& _input;
 
     std::vector<int> _line_size = {INT32_MIN, 0};
-    Location _visible_location  = {.line = 1, .col = 1};
+    Location _begin_location  = {.line = 1, .col = 1};
     Location _location          = {.line = 1, .col = 1};
 
     void next_line();
