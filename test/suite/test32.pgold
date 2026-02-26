@@ -1,5 +1,5 @@
 [Program]  (line 1)
-  [Print]  (line 1)
-    [Gt]  (line 1)
+  [Print]  (line 2)
+    [Gt]  (line 2)
       [RealLit] 3.14  (line 1)
       [RealLit] 3.1  (line 1)

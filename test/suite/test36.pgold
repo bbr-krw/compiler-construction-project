@@ -1,5 +1,5 @@
 [Program]  (line 1)
-  [Print]  (line 1)
-    [Add]  (line 1)
+  [Print]  (line 2)
+    [Add]  (line 2)
       [StrLit] hello  (line 1)
       [StrLit]  world  (line 1)

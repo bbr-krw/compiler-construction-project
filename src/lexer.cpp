@@ -56,10 +56,10 @@ yy::parser::symbol_type Lexer::next() {
 
     /* Skip whitespace */
     while ((c = getch()) != EOF) {
-        if (!isspace(c)) {
-            if (c == '\n') {
-                _location.line++;
-            }
+        if (c == '\n') {
+            _location.line++;
+            _location.col = 0;
+        } else if (!isspace(c)) {
             break;
         }
     }

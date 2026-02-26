@@ -1,5 +1,5 @@
 [Program]  (line 1)
-  [Print]  (line 1)
+  [Print]  (line 2)
     [ArrayLit]  (line 1)
       [IntLit] 1  (line 1)
       [StrLit] two  (line 1)

@@ -1,5 +1,5 @@
 [Program]  (line 1)
-  [Print]  (line 1)
-    [Add]  (line 1)
+  [Print]  (line 2)
+    [Add]  (line 2)
       [IntLit] 5  (line 1)
       [RealLit] 2.5  (line 1)

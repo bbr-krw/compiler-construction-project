@@ -1,5 +1,5 @@
 [Program]  (line 1)
-  [Print]  (line 1)
-    [Gt]  (line 1)
+  [Print]  (line 2)
+    [Gt]  (line 2)
       [IntLit] 5  (line 1)
       [IntLit] 10  (line 1)
