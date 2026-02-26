@@ -2,5 +2,5 @@
   [VarDecl]  (line 1)
     [VarDef] name=b  (line 1)
       [BoolLit] 1  (true) (line 1)
-  [Print]  (line 3)
-    [Ident] b  (line 2)
+  [Print]  (line 1)
+    [Ident] b  (line 1)

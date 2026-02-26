@@ -1,5 +1,5 @@
 [Program]  (line 1)
-  [Print]  (line 2)
-    [Eq]  (line 2)
+  [Print]  (line 1)
+    [Eq]  (line 1)
       [StrLit] abc  (line 1)
       [StrLit] abc  (line 1)
