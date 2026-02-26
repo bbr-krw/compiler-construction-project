@@ -1,9 +1,9 @@
-TOK_IF
-TOK_STRING(abc)
-TOK_EQ
-TOK_STRING(abc)
-TOK_THEN
-TOK_PRINT
-TOK_STRING(strings equal)
-TOK_END
-YYEOF
+   1:1   TOK_IF
+   1:4   TOK_STRING(abc)
+   1:10  TOK_EQ
+   1:12  TOK_STRING(abc)
+   1:18  TOK_THEN
+   2:5   TOK_PRINT
+   2:11  TOK_STRING(strings equal)
+   3:1   TOK_END
+   4:1   YYEOF

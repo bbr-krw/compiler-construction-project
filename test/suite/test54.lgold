@@ -1,8 +1,8 @@
-TOK_VAR
-TOK_IDENT(none_var)
-TOK_SEMI
-TOK_PRINT
-TOK_IDENT(none_var)
-TOK_IS
-TOK_NONE
-YYEOF
+   1:1   TOK_VAR
+   1:5   TOK_IDENT(none_var)
+   1:13  TOK_SEMI
+   2:1   TOK_PRINT
+   2:7   TOK_IDENT(none_var)
+   2:16  TOK_IS
+   2:19  TOK_NONE
+   3:1   YYEOF

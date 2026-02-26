@@ -1,15 +1,15 @@
-TOK_VAR
-TOK_IDENT(outer)
-TOK_ASSIGN
-TOK_STRING(outer)
-TOK_SEMI
-TOK_VAR
-TOK_IDENT(inner)
-TOK_ASSIGN
-TOK_IDENT(outer)
-TOK_SEMI
-TOK_PRINT
-TOK_IDENT(outer)
-TOK_COMMA
-TOK_IDENT(inner)
-YYEOF
+   1:1   TOK_VAR
+   1:5   TOK_IDENT(outer)
+   1:11  TOK_ASSIGN
+   1:14  TOK_STRING(outer)
+   1:21  TOK_SEMI
+   2:1   TOK_VAR
+   2:5   TOK_IDENT(inner)
+   2:11  TOK_ASSIGN
+   2:14  TOK_IDENT(outer)
+   2:19  TOK_SEMI
+   3:1   TOK_PRINT
+   3:7   TOK_IDENT(outer)
+   3:12  TOK_COMMA
+   3:14  TOK_IDENT(inner)
+   4:1   YYEOF

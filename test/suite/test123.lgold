@@ -1,8 +1,8 @@
-TOK_VAR
-TOK_IDENT(msg)
-TOK_ASSIGN
-TOK_STRING(test message)
-TOK_SEMI
-TOK_PRINT
-TOK_IDENT(msg)
-YYEOF
+   1:1   TOK_VAR
+   1:5   TOK_IDENT(msg)
+   1:9   TOK_ASSIGN
+   1:12  TOK_STRING(test message)
+   1:26  TOK_SEMI
+   2:1   TOK_PRINT
+   2:7   TOK_IDENT(msg)
+   3:1   YYEOF
