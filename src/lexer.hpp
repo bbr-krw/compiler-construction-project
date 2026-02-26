@@ -20,14 +20,19 @@ public:
     /**
      * Returns `Location` where last returned token starts
      */
-    Location location() const;
+    Location begin_location() const;
+
+    /**
+     * Returns `Location` where last returned token ends
+     */
+    Location end_location() const;
 
 private:
     std::istream& _input;
 
     std::vector<int> _line_size = {INT32_MIN, 0};
     Location _begin_location  = {.line = 1, .col = 1};
-    Location _location          = {.line = 1, .col = 1};
+    Location _end_location          = {.line = 1, .col = 1};
 
     void next_line();
     void next_col();
