@@ -80,6 +80,10 @@ target_link_libraries(parser_suite_tests
     lexer_lib
 )
 
+target_compile_definitions(parser_suite_tests PRIVATE
+    TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite"
+)
+
 add_test(NAME ParserSuiteTests COMMAND parser_suite_tests)
 
 # ── dlexer: standalone token dumper ───────────────────────────────────────────
@@ -115,6 +119,10 @@ target_include_directories(lexer_suite_tests
     PUBLIC
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_compile_definitions(lexer_suite_tests PRIVATE
+    TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite"
 )
 
 add_test(NAME LexerSuiteTests COMMAND lexer_suite_tests)

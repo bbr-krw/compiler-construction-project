@@ -12,8 +12,7 @@ static std::string read_file(const std::string& path) {
     return {std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>()};
 }
 
-static const std::string SUITE_DIR =
-    "/home/kirill/itmo/compiler-construction-project/test/suite";
+static const std::string SUITE_DIR{TEST_SUITE_DIR};
 
 class LexerSuiteTest : public ::testing::TestWithParam<int> {
 protected:

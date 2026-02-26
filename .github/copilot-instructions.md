@@ -11,8 +11,8 @@ This is a **compiler frontend** (lexer + parser) for the D dynamic language, a c
 Source Code (.d file)
     ↓
 Flex Lexer (lexer.l) → Tokens
-    ↓
-Bison Parser (parser.y) → AST
+    ↓                     ↓
+Bison Parser (parser.y)  dlexer (standalone token dump)
     ↓
 ASTNode tree (ast.hpp/cpp)
     ↓
@@ -32,16 +32,31 @@ dparser prints AST or exits with error
   - Error messages include line numbers via `yylineno`
 
 - **[ast.hpp/cpp](src/ast.hpp)**: Node-based AST structure
-  - `NodeKind` enum (PROGRAM, VAR_DECL, IF, while, FOR_RANGE, etc.)
-  - Payload variant: `long long`, `double`, `string` for literals/identifiers
-  - `.name` field for identifiers and structural metadata
-  - `.children` vector owns child nodes (deleted in destructor)
-  - No virtual parents (parent tracking is consumer's responsibility)
+  - `NodeKind` enum — full list:
+    - Root: `PROGRAM`
+    - Declarations: `VAR_DECL`, `VAR_DEF`
+    - Statements: `ASSIGN`, `IF`, `IF_SHORT`, `WHILE`, `FOR_RANGE`, `FOR_ITER`, `LOOP_INF`, `EXIT`, `RETURN`, `PRINT`, `BODY`
+    - Binary ops: `OR`, `AND`, `XOR`, `LT`, `LE`, `GT`, `GE`, `EQ`, `NEQ`, `ADD`, `SUB`, `MUL`, `DIV`
+    - Unary ops: `UPLUS`, `UMINUS`, `NOT`, `IS`
+    - Postfix/ref: `IDENT`, `INDEX`, `CALL`, `DOT_FIELD`, `DOT_INT`
+    - Literals: `INT_LIT`, `REAL_LIT`, `STR_LIT`, `BOOL_LIT`, `NONE_LIT`, `ARRAY_LIT`, `TUPLE_LIT`, `TUPLE_ELEM`, `FUNC_LIT`, `PARAM_LIST`
+    - Type indicators: `TYPE_INT`, `TYPE_REAL`, `TYPE_BOOL`, `TYPE_STRING`, `TYPE_NONE`, `TYPE_ARRAY`, `TYPE_TUPLE`, `TYPE_FUNC`
+  - Payload variant: `std::variant<std::monostate, long long, double, std::string>`
+  - `.name` field for `VAR_DEF` name, `FOR_RANGE`/`FOR_ITER` iterator, `TUPLE_ELEM` element name, `DOT_FIELD` field name
+  - `.children` vector owns child nodes (recursively deleted in destructor)
+  - Factory methods: `make()`, `make_int()`, `make_real()`, `make_str()`, `make_ident()`, `make_bool()`, `make_none()`
+  - Helper methods: `add_child()`, `prepend_child()`
+  - Payload accessors: `get_ival()`, `get_rval()`, `get_sval()`
 
-- **[main.cpp](src/main.cpp)**: Entry point
+- **[dparser.cpp](src/dparser.cpp)**: Entry point for the parser binary
   - Accepts optional file argument; reads stdin if none
   - Returns exit code 1 on parse failure, 0 on success
   - Prints AST via `root->print(0)` then deletes tree
+
+- **[dlexer.cpp](src/dlexer.cpp)**: Entry point for the standalone lexer/token-dump binary
+
+- **[token_dump.hpp/cpp](src/token_dump.hpp)**: `dump_tokens(input)` — tokenizes a string and returns one token per line
+  - Format: `TOK_NAME` for keyword/operator tokens, `TOK_NAME(value)` for valued tokens, `YYEOF` for end-of-input
 
 ## Build & Test Workflow
 
@@ -56,23 +71,38 @@ cmake ..
 make
 ```
 
-### Running Parser
+Produces three binaries in `build/`: `dparser`, `dlexer`, `lexer_suite_tests`, `parser_suite_tests`.
+
+### Running Parser / Lexer
 ```bash
-./dparser                    # reads stdin
-./dparser ../test/suite/test1.d   # parses file
+./dparser                         # parse stdin, print AST
+./dparser ../test/suite/test1.d   # parse file, print AST
+./dlexer   ../test/suite/test1.d  # dump tokens for a file
 ```
 
 ### Running Tests
 ```bash
-./lexer_tests                # unit tests (GTest framework)
-ctest                        # runs all tests (currently just lexer_tests)
+ctest                  # runs LexerSuiteTests + ParserSuiteTests
+./lexer_suite_tests    # lexer golden tests directly
+./parser_suite_tests   # parser golden tests directly
+```
+
+Tests are parameterised over `test/suite/test{1..150}.d`:
+- Lexer: compares `dump_tokens()` output against `.lgold` files
+- Parser: compares `root->print()` output against `.pgold` files
+- Skip gracefully if a `.d` / gold file is absent
+
+### Regenerating Golden Files
+```bash
+bash test/generate_gold_lexer.sh    # regenerates .lgold files
+bash test/generate_gold_parser.sh   # regenerates .pgold files
 ```
 
 ### Adding Grammar Rules
 When extending `parser.y`:
 1. Add token declarations if needed: `%token <type> TOK_NAME`
 2. Define production rules with action code in `{ ... }`
-3. Use `new ASTNode(NodeKind::...)` to construct nodes
+3. Use `ASTNode::make*(...)` factory methods to construct nodes
 4. Set `.name` for identifiers/structural nodes
 5. Rebuild: `make` (CMake detects .y/.l changes and regenerates)
 6. GCC warnings about flex internal helpers are suppressed (`-Wno-unused-function`)
@@ -87,11 +117,12 @@ When extending `parser.y`:
 
 ### AST Construction Patterns
 ```cpp
-auto* node = new ASTNode(NodeKind::IF, yylineno);  // copy line number from lexer
-node->children.push_back(cond_node);               // condition
-node->children.push_back(then_body);               // then branch
-node->children.push_back(else_body);               // optional else
-parse_result = node;                               // assign to out-param
+// Prefer factory methods
+auto* node = ASTNode::make(NodeKind::IF, yylineno);
+node->add_child(cond_node);    // children[0] = condition
+node->add_child(then_body);    // children[1] = then branch
+node->add_child(else_body);    // children[2] = optional else
+parse_result = node;           // assign to out-param
 ```
 
 ### Lexer String Handling
@@ -99,8 +130,9 @@ parse_result = node;                               // assign to out-param
 - Called for both double and single-quoted strings
 
 ### Testing Patterns
-- **Unit tests** ([test/lexer_test.cpp](test/lexer_test.cpp)): Use `yy_scan_string(input.c_str())` to inject test input
-- **Golden tests**: [test/suite/](test/suite/) contains `.d` files with expected AST output in `.gold` files (currently manual verification)
+- **Lexer suite** ([test/lexer_suite_test.cpp](test/lexer_suite_test.cpp)): calls `dump_tokens()` on `.d` files and diffs against `.lgold`
+- **Parser suite** ([test/parser_suite_test.cpp](test/parser_suite_test.cpp)): runs parser via `yy_scan_string()` and diffs `root->print()` against `.pgold`
+- Both are GTest parameterised fixtures over test IDs 1–150; missing files are skipped
 
 ## Common Tasks
 
@@ -109,7 +141,8 @@ parse_result = node;                               // assign to out-param
 2. Add token in [parser.y](src/parser.y) if new keyword needed
 3. Add lexer pattern in [lexer.l](src/lexer.l)
 4. Add parser production rule in [parser.y](src/parser.y)
-5. Rebuild and test with `./dparser test_input.d`
+5. Rebuild and test: `./dparser test_input.d`
+6. Regenerate golden files if the new construct appears in suite tests
 
 ### Debugging Parse Errors
 - Parser prints: `Parse error at line N: ...` (check grammar for ambiguity)
@@ -144,8 +177,10 @@ See [docs/Project_D_FULL.md](docs/Project_D_FULL.md) for full spec.
 
 ## File Organization
 
-- `src/` – lexer.l, parser.y, ast.hpp/cpp, main.cpp (core compiler)
+- `src/` – lexer.l, parser.y, ast.hpp/cpp, dparser.cpp, dlexer.cpp, token_dump.hpp/cpp
 - `build/` – generated files (lexer.yy.*, parser.tab.*) and build artifacts
-- `test/suite/` – integration tests (input .d files and golden .gold outputs)
-- `test/lexer_test.cpp` – GTest unit tests
+- `test/suite/` – integration tests: `.d` input, `.lgold` lexer golden, `.pgold` parser golden
+- `test/lexer_suite_test.cpp` – GTest lexer suite (parameterised, tests 1–150)
+- `test/parser_suite_test.cpp` – GTest parser suite (parameterised, tests 1–150)
+- `test/generate_gold_lexer.sh` / `test/generate_gold_parser.sh` – golden file generators
 - `docs/Project_D_FULL.md` – complete language spec

@@ -19,15 +19,6 @@ std::string read_file(const std::string& path) {
                      std::istreambuf_iterator<char>());
 }
 
-// Helper to capture AST output
-std::string capture_ast_output(ASTNode* root) {
-  std::stringstream ss;
-  if (root) {
-    root->print(0);  // This prints to stdout, we need to redirect
-  }
-  return ss.str();
-}
-
 // Helper to run parser on input string
 ASTNode* parse_input(const std::string& input) {
   ASTNode* parse_result = nullptr;
@@ -42,16 +33,15 @@ ASTNode* parse_input(const std::string& input) {
   return parse_result;
 }
 
+static const std::string SUITE_DIR{TEST_SUITE_DIR};
+
 class SuiteTest : public ::testing::TestWithParam<int> {
 protected:
-  std::string suite_dir = "/home/kirill/itmo/compiler-construction-project/test/suite";
-  
-  std::string get_test_input_path(int test_num) {
-    return suite_dir + "/test" + std::to_string(test_num) + ".d";
+  std::string get_test_input_path(int test_num) const {
+    return SUITE_DIR + "/test" + std::to_string(test_num) + ".d";
   }
-  
-  std::string get_test_gold_path(int test_num) {
-    return suite_dir + "/test" + std::to_string(test_num) + ".pgold";
+  std::string get_test_gold_path(int test_num) const {
+    return SUITE_DIR + "/test" + std::to_string(test_num) + ".pgold";
   }
 };
 
@@ -98,7 +88,7 @@ INSTANTIATE_TEST_SUITE_P(SuiteTests, SuiteTest,
     return "test" + std::to_string(info.param);
   });
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
