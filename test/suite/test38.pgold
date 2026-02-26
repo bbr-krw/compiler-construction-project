@@ -1,0 +1,8 @@
+[Program]  (line 1)
+  [VarDecl]  (line 1)
+    [VarDef] name=greeting  (line 1)
+      [StrLit] Hello  (line 1)
+  [Print]  (line 3)
+    [Add]  (line 3)
+      [Ident] greeting  (line 2)
+      [StrLit]  there  (line 2)

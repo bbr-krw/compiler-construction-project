@@ -1,0 +1,8 @@
+[Program]  (line 1)
+  [If]  (line 3)
+    [Eq]  (line 1)
+      [StrLit] abc  (line 1)
+      [StrLit] abc  (line 1)
+    [Body]  (line 1)
+      [Print]  (line 3)
+        [StrLit] strings equal  (line 2)

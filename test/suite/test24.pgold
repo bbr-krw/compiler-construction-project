@@ -1,0 +1,7 @@
+[Program]  (line 1)
+  [Print]  (line 2)
+    [Mul]  (line 1)
+      [Add]  (line 1)
+        [IntLit] 5  (line 1)
+        [IntLit] 3  (line 1)
+      [IntLit] 2  (line 1)

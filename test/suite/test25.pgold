@@ -1,0 +1,5 @@
+[Program]  (line 1)
+  [Print]  (line 2)
+    [Div]  (line 1)
+      [IntLit] 42  (line 1)
+      [IntLit] 1  (line 1)

@@ -1,0 +1,7 @@
+[Program]  (line 1)
+  [VarDecl]  (line 1)
+    [VarDef] name=z  (line 1)
+  [Print]  (line 3)
+    [Is]  (line 2)
+      [Ident] z  (line 2)
+      [TypeNone]  (line 2)
