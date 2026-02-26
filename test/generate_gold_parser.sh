@@ -3,7 +3,7 @@
 # Generate golden files for test suite
 # Usage: ./generate_gold_parser.sh [build_dir]
 
-BUILD_DIR="${1:-.../build}"
+BUILD_DIR="${1:-../build}"
 SUITE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/suite"
 DPARSER="$BUILD_DIR/dparser"
 

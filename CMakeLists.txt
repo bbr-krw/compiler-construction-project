@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ── Tool discovery ─────────────────────────────────────────────────────────────
-find_package(FLEX  REQUIRED)
 find_package(BISON REQUIRED)
 
 # ── Generated sources ──────────────────────────────────────────────────────────
@@ -17,17 +16,9 @@ BISON_TARGET(parser
     COMPILE_FLAGS "-Wall"
 )
 
-# Generate lexer with Flex
-FLEX_TARGET(lexer src/lexer.l 
-    ${CMAKE_CURRENT_BINARY_DIR}/lexer.yy.cpp
-    COMPILE_FLAGS "--header-file=${CMAKE_CURRENT_BINARY_DIR}/lexer.yy.hpp"
-)
-
-ADD_FLEX_BISON_DEPENDENCY(lexer parser)
-
 # Create lexer library
 add_library(lexer_lib
-    ${FLEX_lexer_OUTPUTS}
+    src/lexer.cpp
     ${BISON_parser_OUTPUTS}
     src/ast.cpp
     src/token_dump.cpp
@@ -54,7 +45,6 @@ target_include_directories(dparser PRIVATE
 
 target_compile_options(dparser PRIVATE
     -Wall -Wextra
-    -Wno-unused-function   # suppress flex internal helpers
 )
 
 enable_testing()

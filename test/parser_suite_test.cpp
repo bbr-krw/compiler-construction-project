@@ -1,10 +1,6 @@
 #include "ast.hpp"
-// clang-format off
-// parser.tab.hpp must be included before lexer.yy.hpp so that YY_DECL is defined
-// before the flex header declares yylex(), avoiding a return-type conflict.
+#include "lexer.hpp"
 #include "parser.tab.hpp"
-#include "lexer.yy.hpp"
-// clang-format on
 
 #include <filesystem>
 #include <fstream>
@@ -26,9 +22,9 @@ std::string read_file(const std::string& path) {
 // Helper to run parser on input string
 ASTNode* parse_input(const std::string& input) {
     ASTNode* parse_result = nullptr;
-    yylineno              = 1;
-    yy_scan_string(input.c_str());
-    yy::parser parser{parse_result};
+    std::istringstream input_stream(input);
+    Lexer lexer(input_stream);
+    yy::parser parser{parse_result, lexer};
     int result = parser.parse();
 
     if (result != 0) {
