@@ -8,8 +8,8 @@
  * Prints the AST on success; exits with 1 on parse error.
  */
 #include "ast.hpp"
-#include "parser.tab.hpp"
 #include "lexer.hpp"
+#include "parser.tab.hpp"
 
 #include <cstdio>
 #include <fstream>

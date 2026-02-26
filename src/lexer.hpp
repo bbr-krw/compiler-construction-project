@@ -1,8 +1,9 @@
 #pragma once
 
-#include <string>
-#include <istream>
 #include "parser.tab.hpp"
+
+#include <istream>
+#include <string>
 
 class Lexer {
 public:
@@ -19,10 +20,7 @@ public:
 
 private:
     std::istream& _input;
-    Location _location = {
-        .line = 1,
-        .col = 1
-    };
+    Location _location = {.line = 1, .col = 1};
 
     char getch();
     void ungetch(char c);

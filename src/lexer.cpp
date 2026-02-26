@@ -1,14 +1,15 @@
+#include "lexer.hpp"
+
+#include "parser.tab.hpp"
+
+#include <cctype>
 #include <cstring>
 #include <iostream>
-#include <cctype>
 #include <istream>
 #include <string>
 #include <unordered_map>
 
-#include "lexer.hpp"
-#include "parser.tab.hpp"
-
-static std::unordered_map<std::string, yy::parser::symbol_type(*)()> keywords = {
+static std::unordered_map<std::string, yy::parser::symbol_type (*)()> keywords = {
     {"var", yy::parser::make_TOK_VAR},
     {"if", yy::parser::make_TOK_IF},
     {"then", yy::parser::make_TOK_THEN},
@@ -31,8 +32,7 @@ static std::unordered_map<std::string, yy::parser::symbol_type(*)()> keywords = 
     {"int", yy::parser::make_TOK_TYPE_INT},
     {"real", yy::parser::make_TOK_TYPE_REAL},
     {"bool", yy::parser::make_TOK_TYPE_BOOL},
-    {"string", yy::parser::make_TOK_TYPE_STRING}
-};
+    {"string", yy::parser::make_TOK_TYPE_STRING}};
 
 Lexer::Lexer(std::istream& in) : _input(in) {}
 
@@ -43,7 +43,8 @@ char Lexer::getch() {
 
 void Lexer::ungetch(char c) {
     _location.col--;
-    if (c != EOF) _input.putback(c);
+    if (c != EOF)
+        _input.putback(c);
 }
 
 Lexer::Location Lexer::location() const {
@@ -108,8 +109,7 @@ yy::parser::symbol_type Lexer::next() {
 
             if (isdigit(c)) {
                 num += (char)c;
-            }
-            else if (c == '.') {
+            } else if (c == '.') {
                 /* Could be real or ".." */
                 int next = getch();
                 if (next == '.') {
@@ -117,14 +117,12 @@ yy::parser::symbol_type Lexer::next() {
                     ungetch(next);
                     ungetch('.');
                     break;
-                }
-                else {
+                } else {
                     isReal = true;
                     num += '.';
                     ungetch(next);
                 }
-            }
-            else {
+            } else {
                 ungetch(c);
                 break;
             }
@@ -144,17 +142,30 @@ yy::parser::symbol_type Lexer::next() {
 
         while (true) {
             c = getch();
-            if (c == EOF || c == quote) break;
+            if (c == EOF || c == quote)
+                break;
 
             if (c == '\\') {
                 int next = getch();
                 switch (next) {
-                    case 'n':  str += '\n'; break;
-                    case 't':  str += '\t'; break;
-                    case '"':  str += '"';  break;
-                    case '\'': str += '\''; break;
-                    case '\\': str += '\\'; break;
-                    default:   str += next; break;
+                case 'n':
+                    str += '\n';
+                    break;
+                case 't':
+                    str += '\t';
+                    break;
+                case '"':
+                    str += '"';
+                    break;
+                case '\'':
+                    str += '\'';
+                    break;
+                case '\\':
+                    str += '\\';
+                    break;
+                default:
+                    str += next;
+                    break;
                 }
             } else {
                 str += (char)c;
@@ -167,62 +178,79 @@ yy::parser::symbol_type Lexer::next() {
     /* ---------- OPERATORS / PUNCTUATION ---------- */
 
     switch (c) {
-        case '+': return yy::parser::make_TOK_PLUS();
-        case '-': return yy::parser::make_TOK_MINUS();
+    case '+':
+        return yy::parser::make_TOK_PLUS();
+    case '-':
+        return yy::parser::make_TOK_MINUS();
 
-        case '*': return yy::parser::make_TOK_STAR();
-        case '/': {
-            int n = getch();
-            if (n == '=') return yy::parser::make_TOK_NEQ();
-            ungetch(n);
-            return yy::parser::make_TOK_SLASH();
-        }
+    case '*':
+        return yy::parser::make_TOK_STAR();
+    case '/': {
+        int n = getch();
+        if (n == '=')
+            return yy::parser::make_TOK_NEQ();
+        ungetch(n);
+        return yy::parser::make_TOK_SLASH();
+    }
 
-        case '(': return yy::parser::make_TOK_LPAREN();
-        case ')': return yy::parser::make_TOK_RPAREN();
+    case '(':
+        return yy::parser::make_TOK_LPAREN();
+    case ')':
+        return yy::parser::make_TOK_RPAREN();
 
-        case '[': return yy::parser::make_TOK_LBRACKET();
-        case ']': return yy::parser::make_TOK_RBRACKET();
+    case '[':
+        return yy::parser::make_TOK_LBRACKET();
+    case ']':
+        return yy::parser::make_TOK_RBRACKET();
 
-        case '{': return yy::parser::make_TOK_LBRACE();
-        case '}': return yy::parser::make_TOK_RBRACE();
+    case '{':
+        return yy::parser::make_TOK_LBRACE();
+    case '}':
+        return yy::parser::make_TOK_RBRACE();
 
-        case ',': return yy::parser::make_TOK_COMMA();
-        case ';': return yy::parser::make_TOK_SEMI();
-        case '.': {
-            int n = getch();
-            if (n == '.') return yy::parser::make_TOK_DOTDOT();
-            ungetch(n);
-            return yy::parser::make_TOK_DOT();
-        }
+    case ',':
+        return yy::parser::make_TOK_COMMA();
+    case ';':
+        return yy::parser::make_TOK_SEMI();
+    case '.': {
+        int n = getch();
+        if (n == '.')
+            return yy::parser::make_TOK_DOTDOT();
+        ungetch(n);
+        return yy::parser::make_TOK_DOT();
+    }
 
-        case ':': {
-            int n = getch();
-            if (n == '=') return yy::parser::make_TOK_ASSIGN();
-            ungetch(n);
-            break;
-        }
+    case ':': {
+        int n = getch();
+        if (n == '=')
+            return yy::parser::make_TOK_ASSIGN();
+        ungetch(n);
+        break;
+    }
 
-        case '=': {
-            int n = getch();
-            if (n == '>') return yy::parser::make_TOK_ARROW();
-            ungetch(n);
-            return yy::parser::make_TOK_EQ();
-        }
+    case '=': {
+        int n = getch();
+        if (n == '>')
+            return yy::parser::make_TOK_ARROW();
+        ungetch(n);
+        return yy::parser::make_TOK_EQ();
+    }
 
-        case '<': {
-            int n = getch();
-            if (n == '=') return yy::parser::make_TOK_LE();
-            ungetch(n);
-            return yy::parser::make_TOK_LT();
-        }
+    case '<': {
+        int n = getch();
+        if (n == '=')
+            return yy::parser::make_TOK_LE();
+        ungetch(n);
+        return yy::parser::make_TOK_LT();
+    }
 
-        case '>': {
-            int n = getch();
-            if (n == '=') return yy::parser::make_TOK_GE();
-            ungetch(n);
-            return yy::parser::make_TOK_GT();
-        }
+    case '>': {
+        int n = getch();
+        if (n == '=')
+            return yy::parser::make_TOK_GE();
+        ungetch(n);
+        return yy::parser::make_TOK_GT();
+    }
     }
 
     return c;
