@@ -1,0 +1,3 @@
+[Program]  (line 1)
+  [Print]  (line 2)
+    [RealLit] 0.123456  (line 1)

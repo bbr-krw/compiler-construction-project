@@ -25,6 +25,8 @@
             flex
             gnumake
             clang-tools
+            gtest           # Added Google Test
+            gtest.dev       # Added Google Test development files (headers, etc.)
           ];
 
           shellHook = ''

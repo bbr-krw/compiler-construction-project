@@ -1,5 +1,8 @@
 #include "ast.hpp"
 
+#include <format>
+#include <iostream>
+#include <ostream>
 #include <print>
 
 // ── Factory methods ───────────────────────────────────────────────────────────
@@ -107,31 +110,35 @@ std::string_view ASTNode::kind_name() const noexcept {
 
 // ── Pretty printer ────────────────────────────────────────────────────────────
 
-void ASTNode::print(int indent) const {
-    for (int i = 0; i < indent; ++i) std::print("  ");
+void ASTNode::print(int indent, std::ostream& os) const {
+    for (int i = 0; i < indent; ++i) os << "  ";
 
-    std::print("[{}]", kind_name());
+    os << '[' << kind_name() << ']';
 
     // Inline payload
     std::visit(overloaded{
         [](std::monostate)          {},
-        [](long long v)             { std::print(" {}", v); },
-        [](double v)                { std::print(" {:g}", v); },
-        [](const std::string& s)    { std::print(" {}", s); },
+        [&os](long long v)          { os << ' ' << v; },
+        [&os](double v)             { os << ' ' << std::format("{:g}", v); },
+        [&os](const std::string& s) { os << ' ' << s; },
     }, payload);
 
     // Extra name metadata
     if (!name.empty())
-        std::print(" name={}", name);
+        os << " name=" << name;
 
     // Per-kind overrides for the inline suffix
     if (kind == NodeKind::BOOL_LIT)
-        std::println("  ({}) (line {})", get_ival() ? "true" : "false", line);
+        os << "  (" << (get_ival() ? "true" : "false") << ") (line " << line << ")\n";
     else if (kind == NodeKind::DOT_INT)
-        std::println("  (.{}) (line {})", get_ival(), line);
+        os << "  (." << get_ival() << ") (line " << line << ")\n";
     else
-        std::println("  (line {})", line);
+        os << "  (line " << line << ")\n";
 
     for (const auto* child : children)
-        if (child) child->print(indent + 1);
+        if (child) child->print(indent + 1, os);
+}
+
+void ASTNode::print(int indent) const {
+    print(indent, std::cout);
 }

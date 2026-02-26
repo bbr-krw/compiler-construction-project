@@ -10,27 +10,42 @@ find_package(FLEX  REQUIRED)
 find_package(BISON REQUIRED)
 
 # ── Generated sources ──────────────────────────────────────────────────────────
-BISON_TARGET(Parser
+BISON_TARGET(parser
     src/parser.y
     ${CMAKE_CURRENT_BINARY_DIR}/parser.tab.cpp
     DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser.tab.hpp
     COMPILE_FLAGS "-Wall"
 )
 
-FLEX_TARGET(Lexer
-    src/lexer.l
-    ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cpp
+# Generate lexer with Flex
+FLEX_TARGET(lexer src/lexer.l 
+    ${CMAKE_CURRENT_BINARY_DIR}/lexer.yy.cpp
+    COMPILE_FLAGS "--header-file=${CMAKE_CURRENT_BINARY_DIR}/lexer.yy.hpp"
 )
 
-ADD_FLEX_BISON_DEPENDENCY(Lexer Parser)
+ADD_FLEX_BISON_DEPENDENCY(lexer parser)
+
+# Create lexer library
+add_library(lexer_lib
+    ${FLEX_lexer_OUTPUTS}
+    ${BISON_parser_OUTPUTS}
+    src/ast.cpp
+    src/token_dump.cpp
+)
+
+target_include_directories(lexer_lib
+    PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 # ── Executable ─────────────────────────────────────────────────────────────────
 add_executable(dparser
-    src/main.cpp
-    src/ast.cpp
+    src/dparser.cpp
     ${BISON_Parser_OUTPUTS}
-    ${FLEX_Lexer_OUTPUTS}
 )
+
+target_link_libraries(dparser PRIVATE lexer_lib)
 
 target_include_directories(dparser PRIVATE
     src
@@ -41,3 +56,65 @@ target_compile_options(dparser PRIVATE
     -Wall -Wextra
     -Wno-unused-function   # suppress flex internal helpers
 )
+
+enable_testing()
+find_package(GTest REQUIRED)
+
+# Test executable
+add_executable(parser_suite_tests
+    test/parser_suite_test.cpp
+)
+
+target_link_libraries(parser_suite_tests PRIVATE lexer_lib)
+
+target_include_directories(parser_suite_tests
+    PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(parser_suite_tests
+    PRIVATE
+    GTest::gtest
+    GTest::gtest_main
+    lexer_lib
+)
+
+add_test(NAME ParserSuiteTests COMMAND parser_suite_tests)
+
+# ── dlexer: standalone token dumper ───────────────────────────────────────────
+add_executable(dlexer
+    src/dlexer.cpp
+)
+
+target_link_libraries(dlexer PRIVATE lexer_lib)
+
+target_include_directories(dlexer PRIVATE
+    src
+    ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+target_compile_options(dlexer PRIVATE
+    -Wall -Wextra
+    -Wno-unused-function
+)
+
+# ── Lexer suite tests ──────────────────────────────────────────────────────────
+add_executable(lexer_suite_tests
+    test/lexer_suite_test.cpp
+)
+
+target_link_libraries(lexer_suite_tests
+    PRIVATE
+    GTest::gtest
+    GTest::gtest_main
+    lexer_lib
+)
+
+target_include_directories(lexer_suite_tests
+    PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+add_test(NAME LexerSuiteTests COMMAND lexer_suite_tests)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ostream>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -118,5 +119,6 @@ struct ASTNode {
 
     // ── Output ─────────────────────────────────────────────────────────────
     [[nodiscard]] std::string_view kind_name() const noexcept;
+    void print(int indent, std::ostream& os) const;
     void print(int indent = 0) const;
 };

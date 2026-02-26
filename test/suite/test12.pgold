@@ -1,0 +1,5 @@
+[Program]  (line 1)
+  [Print]  (line 2)
+    [Sub]  (line 2)
+      [IntLit] 10  (line 1)
+      [IntLit] 4  (line 1)

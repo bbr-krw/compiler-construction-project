@@ -1,0 +1,5 @@
+[Program]  (line 1)
+  [Print]  (line 2)
+    [Eq]  (line 2)
+      [RealLit] 2  (line 1)
+      [RealLit] 2  (line 1)

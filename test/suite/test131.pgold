@@ -1,0 +1,7 @@
+[Program]  (line 1)
+  [Print]  (line 2)
+    [And]  (line 2)
+      [Or]  (line 1)
+        [BoolLit] 1  (true) (line 1)
+        [BoolLit] 0  (false) (line 1)
+      [BoolLit] 0  (false) (line 1)
