@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: ["main"]
   pull_request:
     branches: ["**"]
 
@@ -31,4 +33,4 @@ jobs:
         run: nix develop --command cmake --build build --target format-check
 
       - name: Test
-        run: nix develop --command ctest --test-dir build --output-on-failure --parallel $(nproc)
+        run: nix develop --command ctest --test-dir build --output-on-failure -V --parallel $(nproc)
