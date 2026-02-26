@@ -9,15 +9,17 @@
  */
 #include "ast.hpp"
 #include "parser.tab.hpp"
+#include "lexer.hpp"
 
 #include <cstdio>
+#include <fstream>
 #include <print>
 
-extern FILE* yyin; // flex input stream
-
 int main(int argc, char* argv[]) {
+
+    std::ifstream yyin;
     if (argc > 1) {
-        yyin = std::fopen(argv[1], "r");
+        yyin = std::ifstream(argv[1]);
         if (!yyin) {
             std::println(stderr, "Error: cannot open '{}'", argv[1]);
             return 1;
@@ -25,12 +27,13 @@ int main(int argc, char* argv[]) {
     }
 
     ASTNode* root{nullptr};
-    yy::parser parser{root};
+    Lexer lexer{yyin};
+    yy::parser parser{root, lexer};
 
     const int rc = parser.parse();
 
     if (argc > 1)
-        std::fclose(yyin);
+        yyin.close();
 
     if (rc != 0 || !root) {
         std::println(stderr, "Parsing failed.");

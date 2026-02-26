@@ -4,7 +4,7 @@
 // parser.tab.hpp must be included before lexer.yy.hpp so that YY_DECL is defined
 // before the flex header declares yylex(), avoiding a return-type conflict.
 #include "parser.tab.hpp"
-#include "lexer.yy.hpp"
+#include "lexer.hpp"
 // clang-format on
 
 #include <format>
@@ -127,10 +127,11 @@ static const char* kind_name(yy::parser::symbol_kind_type k) {
 std::string dump_tokens(const std::string& input) {
     std::ostringstream out;
 
-    yy_scan_string(input.c_str());
+    std::istringstream in(input);
+    Lexer lexer{in};
 
     while (true) {
-        yy::parser::symbol_type sym = yylex();
+        yy::parser::symbol_type sym = lexer.next();
         const auto kind             = sym.kind();
         const char* name            = kind_name(kind);
 
