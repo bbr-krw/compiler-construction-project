@@ -2,5 +2,5 @@
   [VarDecl]  (line 1)
     [VarDef] name=msg  (line 1)
       [StrLit] test message  (line 1)
-  [Print]  (line 2)
+  [Print]  (line 3)
     [Ident] msg  (line 2)

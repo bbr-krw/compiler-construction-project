@@ -1,4 +1,4 @@
 [Program]  (line 1)
-  [Print]  (line 1)
+  [Print]  (line 2)
     [ArrayLit]  (line 1)
       [IntLit] 42  (line 1)

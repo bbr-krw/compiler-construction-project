@@ -8,6 +8,6 @@
           [IntLit] 20  (line 1)
         [TupleElem] name=y  (line 1)
           [IntLit] 30  (line 1)
-  [Print]  (line 2)
+  [Print]  (line 3)
     [DotField] name=x  (line 2)
       [Ident] t80  (line 2)
