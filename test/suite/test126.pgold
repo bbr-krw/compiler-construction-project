@@ -1,5 +1,5 @@
 [Program]  (line 1)
-  [Print]  (line 2)
+  [Print]  (line 1)
     [TupleLit]  (line 1)
       [TupleElem] name=a  (line 1)
         [IntLit] 10  (line 1)

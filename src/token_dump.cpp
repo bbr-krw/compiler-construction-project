@@ -130,34 +130,36 @@ std::string dump_tokens(const std::string& input) {
         yy::parser::symbol_type sym = lexer.next();
         const auto kind             = sym.kind();
         const char* name            = kind_name(kind);
+        const auto [line, col] = lexer.location();
+        const auto location        = std::format("{:>4}:{:<4}", line, col);
 
         switch (kind) {
         // ── Valued: long long ──────────────────────────────────────────
         case yy::parser::symbol_kind::S_TOK_INTEGER:
         case yy::parser::symbol_kind::S_TOK_TRUE:
         case yy::parser::symbol_kind::S_TOK_FALSE:
-            out << name << "(" << sym.value.as<long long>() << ")\n";
+            out << location << name << "(" << sym.value.as<long long>() << ")\n";
             break;
 
         // ── Valued: double ────────────────────────────────────────────
         case yy::parser::symbol_kind::S_TOK_REAL:
-            out << name << "(" << std::format("{:g}", sym.value.as<double>()) << ")\n";
+            out << location << name << "(" << std::format("{:g}", sym.value.as<double>()) << ")\n";
             break;
 
         // ── Valued: string ────────────────────────────────────────────
         case yy::parser::symbol_kind::S_TOK_STRING:
         case yy::parser::symbol_kind::S_TOK_IDENT:
-            out << name << "(" << sym.value.as<std::string>() << ")\n";
+            out << location << name << "(" << sym.value.as<std::string>() << ")\n";
             break;
 
         // ── End of input ──────────────────────────────────────────────
         case yy::parser::symbol_kind::S_YYEOF:
-            out << "YYEOF\n";
+            out << location << "YYEOF\n";
             return out.str();
 
         // ── Keywords and operators ────────────────────────────────────
         default:
-            out << name << "\n";
+            out << location << name << "\n";
             break;
         }
     }

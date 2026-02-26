@@ -14,7 +14,7 @@
       [Add]  (line 3)
         [Ident] t82a  (line 3)
         [Ident] t82b  (line 3)
-  [Print]  (line 5)
+  [Print]  (line 4)
     [DotField] name=a  (line 4)
       [Ident] t82c  (line 4)
     [DotField] name=b  (line 4)

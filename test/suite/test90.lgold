@@ -1,12 +1,12 @@
-TOK_VAR
-TOK_IDENT(condition)
-TOK_ASSIGN
-TOK_TRUE(1)
-TOK_SEMI
-TOK_IF
-TOK_IDENT(condition)
-TOK_THEN
-TOK_PRINT
-TOK_STRING(condition is true)
-TOK_END
-YYEOF
+   1:1   TOK_VAR
+   1:5   TOK_IDENT(condition)
+   1:15  TOK_ASSIGN
+   1:18  TOK_TRUE(1)
+   1:22  TOK_SEMI
+   2:1   TOK_IF
+   2:4   TOK_IDENT(condition)
+   2:14  TOK_THEN
+   3:5   TOK_PRINT
+   3:11  TOK_STRING(condition is true)
+   4:1   TOK_END
+   5:1   YYEOF

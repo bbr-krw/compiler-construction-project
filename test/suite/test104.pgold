@@ -9,6 +9,6 @@
               [IntLit] 1  (line 1)
               [IntLit] 2  (line 1)
               [IntLit] 3  (line 1)
-  [Print]  (line 3)
+  [Print]  (line 2)
     [Call]  (line 2)
       [Ident] f104  (line 2)

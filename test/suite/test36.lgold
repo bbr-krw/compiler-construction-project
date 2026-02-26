@@ -1,5 +1,5 @@
-TOK_PRINT
-TOK_STRING(hello)
-TOK_PLUS
-TOK_STRING( world)
-YYEOF
+   1:1   TOK_PRINT
+   1:7   TOK_STRING(hello)
+   1:15  TOK_PLUS
+   1:17  TOK_STRING( world)
+   2:1   YYEOF

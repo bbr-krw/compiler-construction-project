@@ -1,5 +1,5 @@
-TOK_PRINT
-TOK_STRING(abc)
-TOK_EQ
-TOK_STRING(abc)
-YYEOF
+   1:1   TOK_PRINT
+   1:7   TOK_STRING(abc)
+   1:13  TOK_EQ
+   1:15  TOK_STRING(abc)
+   2:1   YYEOF

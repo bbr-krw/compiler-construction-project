@@ -2,6 +2,7 @@
 
 #include "parser.tab.hpp"
 
+#include <cassert>
 #include <cctype>
 #include <cstring>
 #include <iostream>
@@ -37,31 +38,73 @@ static std::unordered_map<std::string, yy::parser::symbol_type (*)()> keywords =
 Lexer::Lexer(std::istream& in) : _input(in) {}
 
 char Lexer::getch() {
-    _location.col++;
-    return _input.get();
+    char c = _input.get();
+    if (c == '\n') {
+        next_line();
+    } else {
+        next_col();
+    }
+    return c;
 }
 
 void Lexer::ungetch(char c) {
-    _location.col--;
-    if (c != EOF)
+    if (c == '\n') {
+        prev_line();
+    } else {
+        prev_col();
+    }
+
+    if (c != EOF) {
         _input.putback(c);
+    }
+}
+
+void Lexer::next_line() {
+    _location.line++;
+    _location.col = 1;
+
+    if (_line_size.size() <= _location.line) {
+        assert(_line_size.size() == _location.line);
+
+        _line_size.push_back(1);
+    }
+}
+
+void Lexer::next_col() {
+    assert(_location.line < _line_size.size());
+    _location.col++;
+
+    int& line_size = _line_size[_location.line];
+    line_size = std::max(line_size, _location.col);
+}
+
+void Lexer::prev_line() {
+    assert(_location.line > 1 && _location.line < _line_size.size());
+
+    _location.line--;
+    _location.col = _line_size[_location.line];
+}
+
+void Lexer::prev_col() {
+    assert(_location.col > 0);
+    _location.col--;
 }
 
 Lexer::Location Lexer::location() const {
-    return _location;
+    return _visible_location;
 }
 
 yy::parser::symbol_type Lexer::next() {
+    _visible_location = _location;
+
     int c;
 
     /* Skip whitespace */
     while ((c = getch()) != EOF) {
-        if (c == '\n') {
-            _location.line++;
-            _location.col = 0;
-        } else if (!isspace(c)) {
+        if (!isspace(c)) {
             break;
         }
+        _visible_location = _location;
     }
 
     if (c == EOF)

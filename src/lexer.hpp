@@ -2,6 +2,7 @@
 
 #include "parser.tab.hpp"
 
+#include <cstdint>
 #include <istream>
 #include <string>
 
@@ -16,11 +17,22 @@ public:
         int col;
     };
 
+    /**
+     * Returns `Location` where last returned token starts
+     */
     Location location() const;
 
 private:
     std::istream& _input;
+
+    std::vector<int> _line_size = {INT32_MIN, 0};
+    Location _visible_location = {.line = 1, .col = 1};
     Location _location = {.line = 1, .col = 1};
+
+    void next_line();
+    void next_col();
+    void prev_line();
+    void prev_col();
 
     char getch();
     void ungetch(char c);

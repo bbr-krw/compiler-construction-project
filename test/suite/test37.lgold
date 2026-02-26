@@ -1,3 +1,3 @@
-TOK_PRINT
-TOK_STRING(single quoted string)
-YYEOF
+   1:1   TOK_PRINT
+   1:7   TOK_STRING(single quoted string)
+   2:1   YYEOF

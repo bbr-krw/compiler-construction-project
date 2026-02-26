@@ -1,10 +1,10 @@
-TOK_VAR
-TOK_IDENT(greeting)
-TOK_ASSIGN
-TOK_STRING(Hello)
-TOK_SEMI
-TOK_PRINT
-TOK_IDENT(greeting)
-TOK_PLUS
-TOK_STRING( there)
-YYEOF
+   1:1   TOK_VAR
+   1:5   TOK_IDENT(greeting)
+   1:14  TOK_ASSIGN
+   1:17  TOK_STRING(Hello)
+   1:24  TOK_SEMI
+   2:1   TOK_PRINT
+   2:7   TOK_IDENT(greeting)
+   2:16  TOK_PLUS
+   2:18  TOK_STRING( there)
+   3:1   YYEOF
