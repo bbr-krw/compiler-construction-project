@@ -22,7 +22,6 @@
             gdb
             cmake
             bison
-            flex
             gnumake
             clang-tools
             gtest           # Added Google Test
@@ -35,7 +34,6 @@
             echo "  gdb   $(gdb --version | head -1)"
             echo "  cmake $(cmake --version | head -1)"
             echo "  bison $(bison --version | head -1)"
-            echo "  flex  $(flex --version)"
           '';
 
           CMAKE_CXX_COMPILER="${pkgs.gcc}/bin/g++";
