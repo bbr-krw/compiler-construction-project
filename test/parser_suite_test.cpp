@@ -1,10 +1,6 @@
 #include "ast.hpp"
-// clang-format off
-// parser.tab.hpp must be included before lexer.yy.hpp so that YY_DECL is defined
-// before the flex header declares yylex(), avoiding a return-type conflict.
-#include "parser.tab.hpp"
 #include "lexer.hpp"
-// clang-format on
+#include "parser.tab.hpp"
 
 #include <filesystem>
 #include <fstream>
