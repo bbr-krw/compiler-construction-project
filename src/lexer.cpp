@@ -75,7 +75,7 @@ void Lexer::next_col() {
     _location.col++;
 
     int& line_size = _line_size[_location.line];
-    line_size = std::max(line_size, _location.col);
+    line_size      = std::max(line_size, _location.col);
 }
 
 void Lexer::prev_line() {

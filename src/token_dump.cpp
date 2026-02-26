@@ -130,8 +130,8 @@ std::string dump_tokens(const std::string& input) {
         yy::parser::symbol_type sym = lexer.next();
         const auto kind             = sym.kind();
         const char* name            = kind_name(kind);
-        const auto [line, col] = lexer.location();
-        const auto location        = std::format("{:>4}:{:<4}", line, col);
+        const auto [line, col]      = lexer.location();
+        const auto location         = std::format("{:>4}:{:<4}", line, col);
 
         switch (kind) {
         // ── Valued: long long ──────────────────────────────────────────
