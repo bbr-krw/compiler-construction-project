@@ -14,11 +14,10 @@ int main(int argc, char* argv[]) {
             std::cerr << "Cannot open file: " << argv[1] << "\n";
             return 1;
         }
-        input = std::string(std::istreambuf_iterator<char>(file),
-                            std::istreambuf_iterator<char>());
+        input = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
     } else {
-        input = std::string(std::istreambuf_iterator<char>(std::cin),
-                            std::istreambuf_iterator<char>());
+        input =
+            std::string(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
     }
 
     std::cout << dump_tokens(input);

@@ -50,60 +50,114 @@ ASTNode* ASTNode::make_none(int ln) {
 std::string_view ASTNode::kind_name() const noexcept {
     using enum NodeKind;
     switch (kind) {
-        case PROGRAM:     return "Program";
-        case VAR_DECL:    return "VarDecl";
-        case VAR_DEF:     return "VarDef";
-        case ASSIGN:      return "Assign";
-        case IF:          return "If";
-        case IF_SHORT:    return "IfShort";
-        case WHILE:       return "While";
-        case FOR_RANGE:   return "ForRange";
-        case FOR_ITER:    return "ForIter";
-        case LOOP_INF:    return "LoopInf";
-        case EXIT:        return "Exit";
-        case RETURN:      return "Return";
-        case PRINT:       return "Print";
-        case BODY:        return "Body";
-        case OR:          return "Or";
-        case AND:         return "And";
-        case XOR:         return "Xor";
-        case LT:          return "Lt";
-        case LE:          return "Le";
-        case GT:          return "Gt";
-        case GE:          return "Ge";
-        case EQ:          return "Eq";
-        case NEQ:         return "Neq";
-        case ADD:         return "Add";
-        case SUB:         return "Sub";
-        case MUL:         return "Mul";
-        case DIV:         return "Div";
-        case UPLUS:       return "UPlus";
-        case UMINUS:      return "UMinus";
-        case NOT:         return "Not";
-        case IS:          return "Is";
-        case IDENT:       return "Ident";
-        case INDEX:       return "Index";
-        case CALL:        return "Call";
-        case DOT_FIELD:   return "DotField";
-        case DOT_INT:     return "DotInt";
-        case INT_LIT:     return "IntLit";
-        case REAL_LIT:    return "RealLit";
-        case STR_LIT:     return "StrLit";
-        case BOOL_LIT:    return "BoolLit";
-        case NONE_LIT:    return "NoneLit";
-        case ARRAY_LIT:   return "ArrayLit";
-        case TUPLE_LIT:   return "TupleLit";
-        case TUPLE_ELEM:  return "TupleElem";
-        case FUNC_LIT:    return "FuncLit";
-        case PARAM_LIST:  return "ParamList";
-        case TYPE_INT:    return "TypeInt";
-        case TYPE_REAL:   return "TypeReal";
-        case TYPE_BOOL:   return "TypeBool";
-        case TYPE_STRING: return "TypeString";
-        case TYPE_NONE:   return "TypeNone";
-        case TYPE_ARRAY:  return "TypeArray";
-        case TYPE_TUPLE:  return "TypeTuple";
-        case TYPE_FUNC:   return "TypeFunc";
+    case PROGRAM:
+        return "Program";
+    case VAR_DECL:
+        return "VarDecl";
+    case VAR_DEF:
+        return "VarDef";
+    case ASSIGN:
+        return "Assign";
+    case IF:
+        return "If";
+    case IF_SHORT:
+        return "IfShort";
+    case WHILE:
+        return "While";
+    case FOR_RANGE:
+        return "ForRange";
+    case FOR_ITER:
+        return "ForIter";
+    case LOOP_INF:
+        return "LoopInf";
+    case EXIT:
+        return "Exit";
+    case RETURN:
+        return "Return";
+    case PRINT:
+        return "Print";
+    case BODY:
+        return "Body";
+    case OR:
+        return "Or";
+    case AND:
+        return "And";
+    case XOR:
+        return "Xor";
+    case LT:
+        return "Lt";
+    case LE:
+        return "Le";
+    case GT:
+        return "Gt";
+    case GE:
+        return "Ge";
+    case EQ:
+        return "Eq";
+    case NEQ:
+        return "Neq";
+    case ADD:
+        return "Add";
+    case SUB:
+        return "Sub";
+    case MUL:
+        return "Mul";
+    case DIV:
+        return "Div";
+    case UPLUS:
+        return "UPlus";
+    case UMINUS:
+        return "UMinus";
+    case NOT:
+        return "Not";
+    case IS:
+        return "Is";
+    case IDENT:
+        return "Ident";
+    case INDEX:
+        return "Index";
+    case CALL:
+        return "Call";
+    case DOT_FIELD:
+        return "DotField";
+    case DOT_INT:
+        return "DotInt";
+    case INT_LIT:
+        return "IntLit";
+    case REAL_LIT:
+        return "RealLit";
+    case STR_LIT:
+        return "StrLit";
+    case BOOL_LIT:
+        return "BoolLit";
+    case NONE_LIT:
+        return "NoneLit";
+    case ARRAY_LIT:
+        return "ArrayLit";
+    case TUPLE_LIT:
+        return "TupleLit";
+    case TUPLE_ELEM:
+        return "TupleElem";
+    case FUNC_LIT:
+        return "FuncLit";
+    case PARAM_LIST:
+        return "ParamList";
+    case TYPE_INT:
+        return "TypeInt";
+    case TYPE_REAL:
+        return "TypeReal";
+    case TYPE_BOOL:
+        return "TypeBool";
+    case TYPE_STRING:
+        return "TypeString";
+    case TYPE_NONE:
+        return "TypeNone";
+    case TYPE_ARRAY:
+        return "TypeArray";
+    case TYPE_TUPLE:
+        return "TypeTuple";
+    case TYPE_FUNC:
+        return "TypeFunc";
     }
     return "???";
 }
@@ -111,17 +165,19 @@ std::string_view ASTNode::kind_name() const noexcept {
 // ── Pretty printer ────────────────────────────────────────────────────────────
 
 void ASTNode::print(int indent, std::ostream& os) const {
-    for (int i = 0; i < indent; ++i) os << "  ";
+    for (int i = 0; i < indent; ++i)
+        os << "  ";
 
     os << '[' << kind_name() << ']';
 
     // Inline payload
     std::visit(overloaded{
-        [](std::monostate)          {},
-        [&os](long long v)          { os << ' ' << v; },
-        [&os](double v)             { os << ' ' << std::format("{:g}", v); },
-        [&os](const std::string& s) { os << ' ' << s; },
-    }, payload);
+                   [](std::monostate) {},
+                   [&os](long long v) { os << ' ' << v; },
+                   [&os](double v) { os << ' ' << std::format("{:g}", v); },
+                   [&os](const std::string& s) { os << ' ' << s; },
+               },
+               payload);
 
     // Extra name metadata
     if (!name.empty())
@@ -136,7 +192,8 @@ void ASTNode::print(int indent, std::ostream& os) const {
         os << "  (line " << line << ")\n";
 
     for (const auto* child : children)
-        if (child) child->print(indent + 1, os);
+        if (child)
+            child->print(indent + 1, os);
 }
 
 void ASTNode::print(int indent) const {

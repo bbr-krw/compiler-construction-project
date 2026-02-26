@@ -13,7 +13,7 @@
 #include <cstdio>
 #include <print>
 
-extern FILE* yyin;   // flex input stream
+extern FILE* yyin; // flex input stream
 
 int main(int argc, char* argv[]) {
     if (argc > 1) {
@@ -29,7 +29,8 @@ int main(int argc, char* argv[]) {
 
     const int rc = parser.parse();
 
-    if (argc > 1) std::fclose(yyin);
+    if (argc > 1)
+        std::fclose(yyin);
 
     if (rc != 0 || !root) {
         std::println(stderr, "Parsing failed.");
