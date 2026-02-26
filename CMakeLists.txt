@@ -126,3 +126,23 @@ target_compile_definitions(lexer_suite_tests PRIVATE
 )
 
 add_test(NAME LexerSuiteTests COMMAND lexer_suite_tests)
+
+# ── clang-format targets ───────────────────────────────────────────────────────
+find_program(CLANG_FORMAT clang-format)
+if(CLANG_FORMAT)
+    file(GLOB_RECURSE FORMAT_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp
+    )
+    add_custom_target(format
+        COMMAND ${CLANG_FORMAT} -i ${FORMAT_SOURCES}
+        COMMENT "Running clang-format (in-place)"
+    )
+    add_custom_target(format-check
+        COMMAND ${CLANG_FORMAT} --dry-run --Werror ${FORMAT_SOURCES}
+        COMMENT "Checking clang-format compliance"
+    )
+else()
+    message(STATUS "clang-format not found; 'format' and 'format-check' targets unavailable")
+endif()
