@@ -1,3 +1,4 @@
+#include "parser.tab.hpp"
 #include "token_dump.hpp"
 
 #include <fstream>
@@ -20,6 +21,11 @@ int main(int argc, char* argv[]) {
             std::string(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
     }
 
-    std::cout << dump_tokens(input);
+    try {
+        std::cout << dump_tokens(input);
+    }
+    catch (const yy::parser::syntax_error& err) {
+        std::cerr << "ERROR: " << err.what() << std::endl;
+    }
     return 0;
 }

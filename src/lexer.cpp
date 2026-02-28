@@ -10,7 +10,7 @@
 #include <string>
 #include <unordered_map>
 
-static std::unordered_map<std::string, yy::parser::symbol_type (*)()> keywords = {
+static std::unordered_map<std::string, yy::parser::symbol_type (*)()> make_keyword = {
     {"var", yy::parser::make_TOK_VAR},
     {"if", yy::parser::make_TOK_IF},
     {"then", yy::parser::make_TOK_THEN},
@@ -60,51 +60,67 @@ void Lexer::ungetch(char c) {
 }
 
 void Lexer::next_line() {
-    _location.line++;
-    _location.col = 1;
+    _end_location.line++;
+    _end_location.col = 1;
 
-    if (_line_size.size() <= _location.line) {
-        assert(_line_size.size() == _location.line);
+    if (_line_size.size() <= _end_location.line) {
+        assert(_line_size.size() == _end_location.line);
 
         _line_size.push_back(1);
     }
 }
 
 void Lexer::next_col() {
-    assert(_location.line < _line_size.size());
-    _location.col++;
+    assert(_end_location.line < _line_size.size());
+    _end_location.col++;
 
-    int& line_size = _line_size[_location.line];
-    line_size      = std::max(line_size, _location.col);
+    int& line_size = _line_size[_end_location.line];
+    line_size      = std::max(line_size, _end_location.col);
 }
 
 void Lexer::prev_line() {
-    assert(_location.line > 1 && _location.line < _line_size.size());
+    assert(_end_location.line > 1 && _end_location.line < _line_size.size());
 
-    _location.line--;
-    _location.col = _line_size[_location.line];
+    _end_location.line--;
+    _end_location.col = _line_size[_end_location.line];
 }
 
 void Lexer::prev_col() {
-    assert(_location.col > 0);
-    _location.col--;
+    assert(_end_location.col > 0);
+    _end_location.col--;
 }
 
-Lexer::Location Lexer::location() const {
-    return _visible_location;
+Lexer::Location Lexer::begin_location() const {
+    return _begin_location;
+}
+
+Lexer::Location Lexer::end_location() const {
+    return _end_location;
 }
 
 yy::parser::symbol_type Lexer::next() {
-    _visible_location = _location;
+    _begin_location = _end_location;
 
     int c;
 
-    /* Skip whitespace */
+    /* Skip whitespace and commentaries */
     while ((c = getch()) != EOF) {
+        if (c == '/') {
+            if ((c = getch()) == '/') {
+                // find comment, move cursor to next line or EOF
+                do {
+                    c = getch();
+                } while (c != '\n' && c != EOF);
+            } else {
+                // rollback, assume '/' is a part of token
+                ungetch(c);
+                c = '/';
+            }
+        }
         if (!isspace(c)) {
             break;
         }
-        _visible_location = _location;
+        _begin_location = _end_location;
     }
 
     if (c == EOF)
@@ -132,8 +148,8 @@ yy::parser::symbol_type Lexer::next() {
             return yy::parser::make_TOK_FALSE(0);
         }
 
-        auto it = keywords.find(text);
-        if (it != keywords.end()) {
+        auto it = make_keyword.find(text);
+        if (it != make_keyword.end()) {
             return it->second();
         }
 
@@ -232,6 +248,9 @@ yy::parser::symbol_type Lexer::next() {
         int n = getch();
         if (n == '=')
             return yy::parser::make_TOK_NEQ();
+        if (n == '/') {
+            while ((c = getch()) != '\n');
+        }
         ungetch(n);
         return yy::parser::make_TOK_SLASH();
     }
@@ -296,5 +315,9 @@ yy::parser::symbol_type Lexer::next() {
     }
     }
 
-    return c;
+    return yy::parser::token::YYUNDEF;
+
+    //const auto msg = std::format("syntax error: invalid token at {}:{}", 
+    //    _begin_location.line, _begin_location.col);
+    //throw yy::parser::syntax_error(msg);
 }
