@@ -315,7 +315,9 @@ yy::parser::symbol_type Lexer::next() {
     }
     }
 
-    const auto msg = std::format("syntax error: invalid token at {}:{}", 
-        _begin_location.line, _begin_location.col);
-    throw yy::parser::syntax_error(msg);
+    return yy::parser::token::YYUNDEF;
+
+    //const auto msg = std::format("syntax error: invalid token at {}:{}", 
+    //    _begin_location.line, _begin_location.col);
+    //throw yy::parser::syntax_error(msg);
 }
