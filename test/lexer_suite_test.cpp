@@ -39,7 +39,7 @@ TEST_P(LexerSuiteTest, TokensMatchGolden) {
     EXPECT_EQ(actual, expected) << "Token mismatch for test" << n;
 }
 
-INSTANTIATE_TEST_SUITE_P(Suite, LexerSuiteTest, ::testing::Range(1, 151),
+INSTANTIATE_TEST_SUITE_P(Suite, LexerSuiteTest, ::testing::Range(1, 152),
                          [](const ::testing::TestParamInfo<int>& info) {
                              return "test" + std::to_string(info.param);
                          });
