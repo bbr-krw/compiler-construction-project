@@ -22,13 +22,6 @@ for test_file in "$SUITE_DIR"/test*.d; do
   test_num=$(basename "$test_file" .d | sed 's/test//')
   gold_file="$SUITE_DIR/test${test_num}.pgold"
   
-  # Skip if gold file already exists
-  if [ -f "$gold_file" ]; then
-    echo "⊘ test$test_num: gold file exists (skipping)"
-    ((skipped++))
-    continue
-  fi
-  
   # Run parser and capture output
   output=$("$DPARSER" "$test_file" 2>&1)
   exit_code=$?

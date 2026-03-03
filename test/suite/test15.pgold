@@ -1,1 +1,7 @@
-Parse error
+[Program]  (loc 1:0)
+  [VarDecl]  (loc 1:1)
+    [VarDef] name=neg  (loc 1:5)
+      [IntLit] 5  (loc 1:12)
+  [Print]  (loc 2:1)
+    [UPlus]  (loc 2:7)
+      [Ident] neg  (loc 2:8)

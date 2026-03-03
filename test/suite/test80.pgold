@@ -1,1 +1,7 @@
-Parse error
+[Program]  (loc 1:0)
+  [Print]  (loc 1:1)
+    [Is]  (loc 1:7)
+      [TupleLit]  (loc 1:7)
+        [TupleElem] name=a  (loc 1:8)
+          [IntLit] 1  (loc 1:13)
+      [TypeTuple]  (loc 1:19)

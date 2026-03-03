@@ -12,32 +12,36 @@ public:
 
     yy::parser::symbol_type next();
 
-    struct Location {
-        int line;
-        int col;
-    };
+    /**
+     * Returns `yy::position` where last returned token starts
+     */
+    yy::position begin_location() const;
 
     /**
-     * Returns `Location` where last returned token starts
+     * Returns `yy::position` where last returned token ends
      */
-    Location begin_location() const;
+    yy::position end_location() const;
 
     /**
-     * Returns `Location` where last returned token ends
+     * Returns the location (begin..end) of the last returned token
      */
-    Location end_location() const;
+    yy::parser::location_type token_location() const;
 
 private:
     std::istream& _input;
 
-    std::vector<int> _line_size = {INT32_MIN, 0};
-    Location _begin_location    = {.line = 1, .col = 1};
-    Location _end_location      = {.line = 1, .col = 1};
+    std::vector<int> _line_size  = {INT32_MIN, 0};
+    yy::position _begin_location = yy::position(nullptr, 1, 1);
+    yy::position _end_location   = yy::position(nullptr, 1, 1);
+    yy::parser::location_type _token_location;
 
     void next_line();
     void next_col();
     void prev_line();
     void prev_col();
+
+    /* Snapshot current begin/end into _token_location and return it. */
+    yy::parser::location_type seal();
 
     char getch();
     void ungetch(char c);

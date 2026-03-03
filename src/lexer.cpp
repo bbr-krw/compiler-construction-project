@@ -10,30 +10,30 @@
 #include <string>
 #include <unordered_map>
 
-static std::unordered_map<std::string, yy::parser::symbol_type (*)()> make_keyword = {
-    {"var", yy::parser::make_TOK_VAR},
-    {"if", yy::parser::make_TOK_IF},
-    {"then", yy::parser::make_TOK_THEN},
-    {"else", yy::parser::make_TOK_ELSE},
-    {"end", yy::parser::make_TOK_END},
-    {"while", yy::parser::make_TOK_WHILE},
-    {"for", yy::parser::make_TOK_FOR},
-    {"in", yy::parser::make_TOK_IN},
-    {"loop", yy::parser::make_TOK_LOOP},
-    {"exit", yy::parser::make_TOK_EXIT},
-    {"return", yy::parser::make_TOK_RETURN},
-    {"print", yy::parser::make_TOK_PRINT},
-    {"func", yy::parser::make_TOK_FUNC},
-    {"is", yy::parser::make_TOK_IS},
-    {"not", yy::parser::make_TOK_NOT},
-    {"and", yy::parser::make_TOK_AND},
-    {"or", yy::parser::make_TOK_OR},
-    {"xor", yy::parser::make_TOK_XOR},
-    {"none", yy::parser::make_TOK_NONE},
-    {"int", yy::parser::make_TOK_TYPE_INT},
-    {"real", yy::parser::make_TOK_TYPE_REAL},
-    {"bool", yy::parser::make_TOK_TYPE_BOOL},
-    {"string", yy::parser::make_TOK_TYPE_STRING}};
+static std::unordered_map<std::string, yy::parser::symbol_type (*)(yy::parser::location_type)>
+    make_keyword = {{"var", yy::parser::make_TOK_VAR},
+                    {"if", yy::parser::make_TOK_IF},
+                    {"then", yy::parser::make_TOK_THEN},
+                    {"else", yy::parser::make_TOK_ELSE},
+                    {"end", yy::parser::make_TOK_END},
+                    {"while", yy::parser::make_TOK_WHILE},
+                    {"for", yy::parser::make_TOK_FOR},
+                    {"in", yy::parser::make_TOK_IN},
+                    {"loop", yy::parser::make_TOK_LOOP},
+                    {"exit", yy::parser::make_TOK_EXIT},
+                    {"return", yy::parser::make_TOK_RETURN},
+                    {"print", yy::parser::make_TOK_PRINT},
+                    {"func", yy::parser::make_TOK_FUNC},
+                    {"is", yy::parser::make_TOK_IS},
+                    {"not", yy::parser::make_TOK_NOT},
+                    {"and", yy::parser::make_TOK_AND},
+                    {"or", yy::parser::make_TOK_OR},
+                    {"xor", yy::parser::make_TOK_XOR},
+                    {"none", yy::parser::make_TOK_NONE},
+                    {"int", yy::parser::make_TOK_TYPE_INT},
+                    {"real", yy::parser::make_TOK_TYPE_REAL},
+                    {"bool", yy::parser::make_TOK_TYPE_BOOL},
+                    {"string", yy::parser::make_TOK_TYPE_STRING}};
 
 Lexer::Lexer(std::istream& in) : _input(in) {}
 
@@ -61,41 +61,49 @@ void Lexer::ungetch(char c) {
 
 void Lexer::next_line() {
     _end_location.line++;
-    _end_location.col = 1;
+    _end_location.column = 1;
 
-    if (_line_size.size() <= _end_location.line) {
-        assert(_line_size.size() == _end_location.line);
+    if (_line_size.size() <= (size_t)_end_location.line) {
+        assert(_line_size.size() == (size_t)_end_location.line);
 
         _line_size.push_back(1);
     }
 }
 
 void Lexer::next_col() {
-    assert(_end_location.line < _line_size.size());
-    _end_location.col++;
+    assert((size_t)_end_location.line < _line_size.size());
+    _end_location.column++;
 
     int& line_size = _line_size[_end_location.line];
-    line_size      = std::max(line_size, _end_location.col);
+    line_size      = std::max(line_size, _end_location.column);
 }
 
 void Lexer::prev_line() {
-    assert(_end_location.line > 1 && _end_location.line < _line_size.size());
+    assert(_end_location.line > 1 && (size_t)_end_location.line < _line_size.size());
 
     _end_location.line--;
-    _end_location.col = _line_size[_end_location.line];
+    _end_location.column = _line_size[_end_location.line];
 }
 
 void Lexer::prev_col() {
-    assert(_end_location.col > 0);
-    _end_location.col--;
+    assert(_end_location.column > 0);
+    _end_location.column--;
 }
 
-Lexer::Location Lexer::begin_location() const {
+yy::position Lexer::begin_location() const {
     return _begin_location;
 }
 
-Lexer::Location Lexer::end_location() const {
+yy::position Lexer::end_location() const {
     return _end_location;
+}
+
+yy::parser::location_type Lexer::token_location() const {
+    return _token_location;
+}
+
+yy::parser::location_type Lexer::seal() {
+    return _token_location = {_begin_location, _end_location};
 }
 
 yy::parser::symbol_type Lexer::next() {
@@ -124,7 +132,7 @@ yy::parser::symbol_type Lexer::next() {
     }
 
     if (c == EOF)
-        return 0;
+        return yy::parser::make_YYEOF(seal());
 
     /* ---------- IDENTIFIERS / KEYWORDS ---------- */
     if (isalpha(c) || c == '_') {
@@ -142,18 +150,18 @@ yy::parser::symbol_type Lexer::next() {
         }
 
         if (text == "true") {
-            return yy::parser::make_TOK_TRUE(1);
+            return yy::parser::make_TOK_TRUE(1, seal());
         }
         if (text == "false") {
-            return yy::parser::make_TOK_FALSE(0);
+            return yy::parser::make_TOK_FALSE(0, seal());
         }
 
         auto it = make_keyword.find(text);
         if (it != make_keyword.end()) {
-            return it->second();
+            return it->second(seal());
         }
 
-        return yy::parser::make_TOK_IDENT(text);
+        return yy::parser::make_TOK_IDENT(text, seal());
     }
 
     /* ---------- NUMBERS ---------- */
@@ -188,9 +196,9 @@ yy::parser::symbol_type Lexer::next() {
         }
 
         if (isReal) {
-            return yy::parser::make_TOK_REAL(std::stod(num));
+            return yy::parser::make_TOK_REAL(std::stod(num), seal());
         } else {
-            return yy::parser::make_TOK_INTEGER(std::stoll(num));
+            return yy::parser::make_TOK_INTEGER(std::stoll(num), seal());
         }
     }
 
@@ -231,62 +239,62 @@ yy::parser::symbol_type Lexer::next() {
             }
         }
 
-        return yy::parser::make_TOK_STRING(str);
+        return yy::parser::make_TOK_STRING(str, seal());
     }
 
     /* ---------- OPERATORS / PUNCTUATION ---------- */
 
     switch (c) {
     case '+':
-        return yy::parser::make_TOK_PLUS();
+        return yy::parser::make_TOK_PLUS(seal());
     case '-':
-        return yy::parser::make_TOK_MINUS();
+        return yy::parser::make_TOK_MINUS(seal());
 
     case '*':
-        return yy::parser::make_TOK_STAR();
+        return yy::parser::make_TOK_STAR(seal());
     case '/': {
         int n = getch();
         if (n == '=')
-            return yy::parser::make_TOK_NEQ();
+            return yy::parser::make_TOK_NEQ(seal());
         if (n == '/') {
             while ((c = getch()) != '\n')
                 ;
         }
         ungetch(n);
-        return yy::parser::make_TOK_SLASH();
+        return yy::parser::make_TOK_SLASH(seal());
     }
 
     case '(':
-        return yy::parser::make_TOK_LPAREN();
+        return yy::parser::make_TOK_LPAREN(seal());
     case ')':
-        return yy::parser::make_TOK_RPAREN();
+        return yy::parser::make_TOK_RPAREN(seal());
 
     case '[':
-        return yy::parser::make_TOK_LBRACKET();
+        return yy::parser::make_TOK_LBRACKET(seal());
     case ']':
-        return yy::parser::make_TOK_RBRACKET();
+        return yy::parser::make_TOK_RBRACKET(seal());
 
     case '{':
-        return yy::parser::make_TOK_LBRACE();
+        return yy::parser::make_TOK_LBRACE(seal());
     case '}':
-        return yy::parser::make_TOK_RBRACE();
+        return yy::parser::make_TOK_RBRACE(seal());
 
     case ',':
-        return yy::parser::make_TOK_COMMA();
+        return yy::parser::make_TOK_COMMA(seal());
     case ';':
-        return yy::parser::make_TOK_SEMI();
+        return yy::parser::make_TOK_SEMI(seal());
     case '.': {
         int n = getch();
         if (n == '.')
-            return yy::parser::make_TOK_DOTDOT();
+            return yy::parser::make_TOK_DOTDOT(seal());
         ungetch(n);
-        return yy::parser::make_TOK_DOT();
+        return yy::parser::make_TOK_DOT(seal());
     }
 
     case ':': {
         int n = getch();
         if (n == '=')
-            return yy::parser::make_TOK_ASSIGN();
+            return yy::parser::make_TOK_ASSIGN(seal());
         ungetch(n);
         break;
     }
@@ -294,27 +302,27 @@ yy::parser::symbol_type Lexer::next() {
     case '=': {
         int n = getch();
         if (n == '>')
-            return yy::parser::make_TOK_ARROW();
+            return yy::parser::make_TOK_ARROW(seal());
         ungetch(n);
-        return yy::parser::make_TOK_EQ();
+        return yy::parser::make_TOK_EQ(seal());
     }
 
     case '<': {
         int n = getch();
         if (n == '=')
-            return yy::parser::make_TOK_LE();
+            return yy::parser::make_TOK_LE(seal());
         ungetch(n);
-        return yy::parser::make_TOK_LT();
+        return yy::parser::make_TOK_LT(seal());
     }
 
     case '>': {
         int n = getch();
         if (n == '=')
-            return yy::parser::make_TOK_GE();
+            return yy::parser::make_TOK_GE(seal());
         ungetch(n);
-        return yy::parser::make_TOK_GT();
+        return yy::parser::make_TOK_GT(seal());
     }
     }
 
-    return yy::parser::token::YYUNDEF;
+    return yy::parser::make_YYUNDEF(seal());
 }

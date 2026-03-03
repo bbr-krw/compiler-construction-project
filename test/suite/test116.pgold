@@ -1,1 +1,11 @@
-Parse error
+[Program]  (loc 1:0)
+  [VarDecl]  (loc 1:1)
+    [VarDef] name=f116  (loc 1:5)
+      [FuncLit]  (loc 1:13)
+        [ParamList]  (loc 1:13)
+        [Body]  (loc 1:20)
+          [Return]  (loc 2:5)
+  [Call]  (loc 4:1)
+    [Ident] f116  (loc 4:1)
+  [Print]  (loc 5:1)
+    [StrLit] after return  (loc 5:7)

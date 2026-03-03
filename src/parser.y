@@ -14,6 +14,7 @@
 %define   api.token.constructor
 %define   api.value.type variant
 %define   parse.assert
+%locations
 
 /* The parsed AST root is returned through this reference. */
 %parse-param { ASTNode*& parse_result }
@@ -33,8 +34,8 @@
     #include "lexer.hpp"
     #include <print>
 
-    void yy::parser::error(const std::string& msg) {
-        std::println(stderr, "Parse error at line {}:{}: {}", lexer.begin_location().line, lexer.begin_location().col, msg);
+    void yy::parser::error(const location_type& loc, const std::string& msg) {
+        std::println(stderr, "Parse error at line {}:{}: {}", loc.begin.line, loc.begin.column, msg);
     }
 
     static yy::parser::symbol_type yylex(Lexer& lexer) {
@@ -100,7 +101,7 @@ program
 
 stmt_list
     : %empty
-        { $$ = ASTNode::make(NodeKind::BODY, lexer.begin_location().line); }
+        { $$ = ASTNode::make(NodeKind::BODY, @$.begin.line, @$.begin.column); }
     | stmt_list stmt
         { if ($2) $1->add_child($2); $$ = $1; }
     | stmt_list TOK_SEMI stmt
@@ -118,6 +119,7 @@ body : stmt_list { $$ = $1; } ;
 stmt
     : decl          { $$ = $1; }
     | assign        { $$ = $1; }
+    | postfix       { $$ = $1; }
     | if_stmt       { $$ = $1; }
     | if_short_stmt { $$ = $1; }
     | loop_stmt     { $$ = $1; }
@@ -135,7 +137,7 @@ stmt
 decl
     : TOK_VAR var_def_list
         {
-            auto* n = ASTNode::make(NodeKind::VAR_DECL, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::VAR_DECL, @1.begin.line, @1.begin.column);
             for (auto* c : $2->children) n->add_child(c);
             $2->children.clear();
             delete $2;
@@ -146,7 +148,7 @@ decl
 var_def_list
     : var_def
         {
-            auto* lst = ASTNode::make(NodeKind::BODY, lexer.begin_location().line);
+            auto* lst = ASTNode::make(NodeKind::BODY, @1.begin.line, @1.begin.column);
             lst->add_child($1);
             $$ = lst;
         }
@@ -157,13 +159,13 @@ var_def_list
 var_def
     : TOK_IDENT
         {
-            auto* n = ASTNode::make(NodeKind::VAR_DEF, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::VAR_DEF, @1.begin.line, @1.begin.column);
             n->name = std::move($1);
             $$ = n;
         }
     | TOK_IDENT TOK_ASSIGN expr
         {
-            auto* n = ASTNode::make(NodeKind::VAR_DEF, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::VAR_DEF, @1.begin.line, @1.begin.column);
             n->name = std::move($1);
             n->add_child($3);
             $$ = n;
@@ -177,7 +179,7 @@ var_def
 assign
     : postfix TOK_ASSIGN expr
         {
-            auto* n = ASTNode::make(NodeKind::ASSIGN, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::ASSIGN, @1.begin.line, @1.begin.column);
             n->add_child($1);
             n->add_child($3);
             $$ = n;
@@ -191,13 +193,13 @@ assign
 if_stmt
     : TOK_IF expr TOK_THEN body TOK_END
         {
-            auto* n = ASTNode::make(NodeKind::IF, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::IF, @1.begin.line, @1.begin.column);
             n->add_child($2); n->add_child($4);
             $$ = n;
         }
     | TOK_IF expr TOK_THEN body TOK_ELSE body TOK_END
         {
-            auto* n = ASTNode::make(NodeKind::IF, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::IF, @1.begin.line, @1.begin.column);
             n->add_child($2); n->add_child($4); n->add_child($6);
             $$ = n;
         }
@@ -207,7 +209,7 @@ if_stmt
 if_short_stmt
     : TOK_IF expr TOK_ARROW stmt
         {
-            auto* n = ASTNode::make(NodeKind::IF_SHORT, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::IF_SHORT, @1.begin.line, @1.begin.column);
             n->add_child($2); n->add_child($4);
             $$ = n;
         }
@@ -221,7 +223,7 @@ if_short_stmt
 loop_stmt
     : TOK_LOOP body TOK_END
         {
-            auto* n = ASTNode::make(NodeKind::LOOP_INF, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::LOOP_INF, @1.begin.line, @1.begin.column);
             n->add_child($2);
             $$ = n;
         }
@@ -231,7 +233,7 @@ loop_stmt
 while_stmt
     : TOK_WHILE expr TOK_LOOP body TOK_END
         {
-            auto* n = ASTNode::make(NodeKind::WHILE, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::WHILE, @1.begin.line, @1.begin.column);
             n->add_child($2); n->add_child($4);
             $$ = n;
         }
@@ -242,14 +244,14 @@ for_stmt
     /* for expr .. expr loop body end  (range, no iterator variable) */
     : TOK_FOR expr TOK_DOTDOT expr TOK_LOOP body TOK_END
         {
-            auto* n = ASTNode::make(NodeKind::FOR_RANGE, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::FOR_RANGE, @1.begin.line, @1.begin.column);
             n->add_child($2); n->add_child($4); n->add_child($6);
             $$ = n;
         }
     /* for id in expr .. expr loop body end  (range, named iterator) */
     | TOK_FOR TOK_IDENT TOK_IN expr TOK_DOTDOT expr TOK_LOOP body TOK_END
         {
-            auto* n = ASTNode::make(NodeKind::FOR_RANGE, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::FOR_RANGE, @1.begin.line, @1.begin.column);
             n->name = std::move($2);
             n->add_child($4); n->add_child($6); n->add_child($8);
             $$ = n;
@@ -257,14 +259,14 @@ for_stmt
     /* for expr loop body end  (iterate over array/tuple, no iterator var) */
     | TOK_FOR expr TOK_LOOP body TOK_END
         {
-            auto* n = ASTNode::make(NodeKind::FOR_ITER, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::FOR_ITER, @1.begin.line, @1.begin.column);
             n->add_child($2); n->add_child($4);
             $$ = n;
         }
     /* for id in expr loop body end  (iterate over array/tuple, named iterator) */
     | TOK_FOR TOK_IDENT TOK_IN expr TOK_LOOP body TOK_END
         {
-            auto* n = ASTNode::make(NodeKind::FOR_ITER, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::FOR_ITER, @1.begin.line, @1.begin.column);
             n->name = std::move($2);
             n->add_child($4); n->add_child($6);
             $$ = n;
@@ -276,15 +278,15 @@ for_stmt
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 exit_stmt
-    : TOK_EXIT  { $$ = ASTNode::make(NodeKind::EXIT,   lexer.begin_location().line); }
+    : TOK_EXIT  { $$ = ASTNode::make(NodeKind::EXIT,   @1.begin.line, @1.begin.column); }
     ;
 
 return_stmt
     : TOK_RETURN
-        { $$ = ASTNode::make(NodeKind::RETURN, lexer.begin_location().line); }
+        { $$ = ASTNode::make(NodeKind::RETURN, @1.begin.line, @1.begin.column); }
     | TOK_RETURN expr
         {
-            auto* n = ASTNode::make(NodeKind::RETURN, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::RETURN, @1.begin.line, @1.begin.column);
             n->add_child($2);
             $$ = n;
         }
@@ -293,7 +295,7 @@ return_stmt
 print_stmt
     : TOK_PRINT expr_list
         {
-            auto* n = ASTNode::make(NodeKind::PRINT, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::PRINT, @1.begin.line, @1.begin.column);
             for (auto* c : $2->children) n->add_child(c);
             $2->children.clear();
             delete $2;
@@ -307,31 +309,31 @@ print_stmt
 
 expr
     : relation                      { $$ = $1; }
-    | expr TOK_OR  relation         { auto* n=ASTNode::make(NodeKind::OR,  lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
-    | expr TOK_AND relation         { auto* n=ASTNode::make(NodeKind::AND, lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
-    | expr TOK_XOR relation         { auto* n=ASTNode::make(NodeKind::XOR, lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
+    | expr TOK_OR  relation         { auto* n=ASTNode::make(NodeKind::OR,  $1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
+    | expr TOK_AND relation         { auto* n=ASTNode::make(NodeKind::AND, $1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
+    | expr TOK_XOR relation         { auto* n=ASTNode::make(NodeKind::XOR, $1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
     ;
 
 relation
     : factor                        { $$ = $1; }
-    | factor TOK_LT  factor   { auto* n=ASTNode::make(NodeKind::LT, lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
-    | factor TOK_LE  factor   { auto* n=ASTNode::make(NodeKind::LE, lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
-    | factor TOK_GT  factor   { auto* n=ASTNode::make(NodeKind::GT, lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
-    | factor TOK_GE  factor   { auto* n=ASTNode::make(NodeKind::GE, lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
-    | factor TOK_EQ  factor   { auto* n=ASTNode::make(NodeKind::EQ, lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
-    | factor TOK_NEQ factor   { auto* n=ASTNode::make(NodeKind::NEQ,lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
+    | factor TOK_LT  factor   { auto* n=ASTNode::make(NodeKind::LT, $1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
+    | factor TOK_LE  factor   { auto* n=ASTNode::make(NodeKind::LE, $1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
+    | factor TOK_GT  factor   { auto* n=ASTNode::make(NodeKind::GT, $1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
+    | factor TOK_GE  factor   { auto* n=ASTNode::make(NodeKind::GE, $1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
+    | factor TOK_EQ  factor   { auto* n=ASTNode::make(NodeKind::EQ, $1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
+    | factor TOK_NEQ factor   { auto* n=ASTNode::make(NodeKind::NEQ,$1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
     ;
 
 factor
     : term                          { $$ = $1; }
-    | factor TOK_PLUS  term   { auto* n=ASTNode::make(NodeKind::ADD,lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
-    | factor TOK_MINUS term   { auto* n=ASTNode::make(NodeKind::SUB,lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
+    | factor TOK_PLUS  term   { auto* n=ASTNode::make(NodeKind::ADD,$1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
+    | factor TOK_MINUS term   { auto* n=ASTNode::make(NodeKind::SUB,$1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
     ;
 
 term
     : unary                         { $$ = $1; }
-    | term TOK_STAR  unary    { auto* n=ASTNode::make(NodeKind::MUL,lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
-    | term TOK_SLASH unary    { auto* n=ASTNode::make(NodeKind::DIV,lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
+    | term TOK_STAR  unary    { auto* n=ASTNode::make(NodeKind::MUL,$1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
+    | term TOK_SLASH unary    { auto* n=ASTNode::make(NodeKind::DIV,$1->line, $1->col); n->add_child($1); n->add_child($3); $$=n; }
     ;
 
 /*
@@ -344,11 +346,16 @@ term
 unary
     : postfix                               { $$ = $1; }
     | postfix TOK_IS type_indicator
-        { auto* n=ASTNode::make(NodeKind::IS,    lexer.begin_location().line); n->add_child($1); n->add_child($3); $$=n; }
+        { auto* n=ASTNode::make(NodeKind::IS,    @1.begin.line, @1.begin.column); n->add_child($1); n->add_child($3); $$=n; }
     | primary                               { $$ = $1; }
-    | TOK_PLUS  primary                     { auto* n=ASTNode::make(NodeKind::UPLUS, lexer.begin_location().line); n->add_child($2); $$=n; }
-    | TOK_MINUS primary                     { auto* n=ASTNode::make(NodeKind::UMINUS,lexer.begin_location().line); n->add_child($2); $$=n; }
-    | TOK_NOT   primary                     { auto* n=ASTNode::make(NodeKind::NOT,   lexer.begin_location().line); n->add_child($2); $$=n; }
+    | primary TOK_IS type_indicator
+        { auto* n=ASTNode::make(NodeKind::IS,    @1.begin.line, @1.begin.column); n->add_child($1); n->add_child($3); $$=n; }
+    | TOK_PLUS  postfix                     { auto* n=ASTNode::make(NodeKind::UPLUS, @1.begin.line, @1.begin.column); n->add_child($2); $$=n; }
+    | TOK_MINUS postfix                     { auto* n=ASTNode::make(NodeKind::UMINUS,@1.begin.line, @1.begin.column); n->add_child($2); $$=n; }
+    | TOK_NOT   postfix                     { auto* n=ASTNode::make(NodeKind::NOT,   @1.begin.line, @1.begin.column); n->add_child($2); $$=n; }
+    | TOK_PLUS  primary                     { auto* n=ASTNode::make(NodeKind::UPLUS, @1.begin.line, @1.begin.column); n->add_child($2); $$=n; }
+    | TOK_MINUS primary                     { auto* n=ASTNode::make(NodeKind::UMINUS,@1.begin.line, @1.begin.column); n->add_child($2); $$=n; }
+    | TOK_NOT   primary                     { auto* n=ASTNode::make(NodeKind::NOT,   @1.begin.line, @1.begin.column); n->add_child($2); $$=n; }
     ;
 
 /*
@@ -367,12 +374,12 @@ primary
  */
 postfix
     : TOK_IDENT
-        { $$ = ASTNode::make_ident(std::move($1), lexer.begin_location().line); }
+        { $$ = ASTNode::make_ident(std::move($1), @1.begin.line, @1.begin.column); }
 
     /* ref [ expr ] */
     | postfix TOK_LBRACKET expr TOK_RBRACKET
         {
-            auto* n = ASTNode::make(NodeKind::INDEX, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::INDEX, @1.begin.line, @1.begin.column);
             n->add_child($1); n->add_child($3);
             $$ = n;
         }
@@ -380,7 +387,7 @@ postfix
     /* ref ( opt_expr_list ) */
     | postfix TOK_LPAREN opt_expr_list TOK_RPAREN
         {
-            auto* n = ASTNode::make(NodeKind::CALL, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::CALL, @1.begin.line, @1.begin.column);
             n->add_child($1);
             for (auto* c : $3->children) n->add_child(c);
             $3->children.clear();
@@ -391,7 +398,7 @@ postfix
     /* ref . IDENT */
     | postfix TOK_DOT TOK_IDENT
         {
-            auto* n = ASTNode::make(NodeKind::DOT_FIELD, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::DOT_FIELD, @1.begin.line, @1.begin.column);
             n->name = std::move($3);
             n->add_child($1);
             $$ = n;
@@ -400,7 +407,7 @@ postfix
     /* ref . INTEGER */
     | postfix TOK_DOT TOK_INTEGER
         {
-            auto* n = ASTNode::make(NodeKind::DOT_INT, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::DOT_INT, @1.begin.line, @1.begin.column);
             n->payload = $3;
             n->add_child($1);
             $$ = n;
@@ -415,8 +422,8 @@ func_literal
     /* func is body end  (no params) */
     : TOK_FUNC TOK_IS body TOK_END
         {
-            auto* n  = ASTNode::make(NodeKind::FUNC_LIT, lexer.begin_location().line);
-            auto* pl = ASTNode::make(NodeKind::PARAM_LIST, lexer.begin_location().line);
+            auto* n  = ASTNode::make(NodeKind::FUNC_LIT, @1.begin.line, @1.begin.column);
+            auto* pl = ASTNode::make(NodeKind::PARAM_LIST, @1.begin.line, @1.begin.column);
             n->add_child(pl); n->add_child($3);
             $$ = n;
         }
@@ -424,11 +431,11 @@ func_literal
     /* func => expr  (no params, expression body) */
     | TOK_FUNC TOK_ARROW expr
         {
-            auto* n   = ASTNode::make(NodeKind::FUNC_LIT, lexer.begin_location().line);
-            auto* pl  = ASTNode::make(NodeKind::PARAM_LIST, lexer.begin_location().line);
-            auto* ret = ASTNode::make(NodeKind::RETURN, lexer.begin_location().line);
+            auto* n   = ASTNode::make(NodeKind::FUNC_LIT, @1.begin.line, @1.begin.column);
+            auto* pl  = ASTNode::make(NodeKind::PARAM_LIST, @1.begin.line, @1.begin.column);
+            auto* ret = ASTNode::make(NodeKind::RETURN, @1.begin.line, @1.begin.column);
             ret->add_child($3);
-            auto* b   = ASTNode::make(NodeKind::BODY, lexer.begin_location().line);
+            auto* b   = ASTNode::make(NodeKind::BODY, @1.begin.line, @1.begin.column);
             b->add_child(ret);
             n->add_child(pl); n->add_child(b);
             $$ = n;
@@ -437,7 +444,7 @@ func_literal
     /* func ( params ) is body end */
     | TOK_FUNC TOK_LPAREN param_list TOK_RPAREN TOK_IS body TOK_END
         {
-            auto* n = ASTNode::make(NodeKind::FUNC_LIT, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::FUNC_LIT, @1.begin.line, @1.begin.column);
             n->add_child($3); n->add_child($6);
             $$ = n;
         }
@@ -445,10 +452,10 @@ func_literal
     /* func ( params ) => expr */
     | TOK_FUNC TOK_LPAREN param_list TOK_RPAREN TOK_ARROW expr
         {
-            auto* n   = ASTNode::make(NodeKind::FUNC_LIT, lexer.begin_location().line);
-            auto* ret = ASTNode::make(NodeKind::RETURN, lexer.begin_location().line);
+            auto* n   = ASTNode::make(NodeKind::FUNC_LIT, @1.begin.line, @1.begin.column);
+            auto* ret = ASTNode::make(NodeKind::RETURN, @1.begin.line, @1.begin.column);
             ret->add_child($6);
-            auto* b   = ASTNode::make(NodeKind::BODY, lexer.begin_location().line);
+            auto* b   = ASTNode::make(NodeKind::BODY, @1.begin.line, @1.begin.column);
             b->add_child(ret);
             n->add_child($3); n->add_child(b);
             $$ = n;
@@ -458,13 +465,13 @@ func_literal
 param_list
     : TOK_IDENT
         {
-            auto* pl = ASTNode::make(NodeKind::PARAM_LIST, lexer.begin_location().line);
-            pl->add_child(ASTNode::make_ident(std::move($1), lexer.begin_location().line));
+            auto* pl = ASTNode::make(NodeKind::PARAM_LIST, @1.begin.line, @1.begin.column);
+            pl->add_child(ASTNode::make_ident(std::move($1), @1.begin.line, @1.begin.column));
             $$ = pl;
         }
     | param_list TOK_COMMA TOK_IDENT
         {
-            $1->add_child(ASTNode::make_ident(std::move($3), lexer.begin_location().line));
+            $1->add_child(ASTNode::make_ident(std::move($3), @3.begin.line, @3.begin.column));
             $$ = $1;
         }
     ;
@@ -474,12 +481,12 @@ param_list
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 literal
-    : TOK_INTEGER       { $$ = ASTNode::make_int ($1,          lexer.begin_location().line); }
-    | TOK_REAL          { $$ = ASTNode::make_real($1,          lexer.begin_location().line); }
-    | TOK_STRING        { $$ = ASTNode::make_str (std::move($1), lexer.begin_location().line); }
-    | TOK_TRUE          { $$ = ASTNode::make_bool(true,        lexer.begin_location().line); }
-    | TOK_FALSE         { $$ = ASTNode::make_bool(false,       lexer.begin_location().line); }
-    | TOK_NONE          { $$ = ASTNode::make_none(             lexer.begin_location().line); }
+    : TOK_INTEGER       { $$ = ASTNode::make_int ($1,          @1.begin.line, @1.begin.column); }
+    | TOK_REAL          { $$ = ASTNode::make_real($1,          @1.begin.line, @1.begin.column); }
+    | TOK_STRING        { $$ = ASTNode::make_str (std::move($1), @1.begin.line, @1.begin.column); }
+    | TOK_TRUE          { $$ = ASTNode::make_bool(true,        @1.begin.line, @1.begin.column); }
+    | TOK_FALSE         { $$ = ASTNode::make_bool(false,       @1.begin.line, @1.begin.column); }
+    | TOK_NONE          { $$ = ASTNode::make_none(             @1.begin.line, @1.begin.column); }
     | array_literal     { $$ = $1; }
     | tuple_literal     { $$ = $1; }
     ;
@@ -487,10 +494,10 @@ literal
 /* Array literal:  []  or  [ expr, expr, ... ] */
 array_literal
     : TOK_LBRACKET TOK_RBRACKET
-        { $$ = ASTNode::make(NodeKind::ARRAY_LIT, lexer.begin_location().line); }
+        { $$ = ASTNode::make(NodeKind::ARRAY_LIT, @1.begin.line, @1.begin.column); }
     | TOK_LBRACKET expr_list TOK_RBRACKET
         {
-            auto* n = ASTNode::make(NodeKind::ARRAY_LIT, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::ARRAY_LIT, @1.begin.line, @1.begin.column);
             for (auto* c : $2->children) n->add_child(c);
             $2->children.clear();
             delete $2;
@@ -502,7 +509,7 @@ array_literal
 tuple_literal
     : TOK_LBRACE tuple_elem_list TOK_RBRACE
         {
-            auto* n = ASTNode::make(NodeKind::TUPLE_LIT, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::TUPLE_LIT, @1.begin.line, @1.begin.column);
             for (auto* c : $2->children) n->add_child(c);
             $2->children.clear();
             delete $2;
@@ -513,7 +520,7 @@ tuple_literal
 tuple_elem_list
     : tuple_elem
         {
-            auto* lst = ASTNode::make(NodeKind::BODY, lexer.begin_location().line);
+            auto* lst = ASTNode::make(NodeKind::BODY, @1.begin.line, @1.begin.column);
             lst->add_child($1);
             $$ = lst;
         }
@@ -525,7 +532,7 @@ tuple_elem
     /* named:  IDENT := expr */
     : TOK_IDENT TOK_ASSIGN expr
         {
-            auto* n = ASTNode::make(NodeKind::TUPLE_ELEM, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::TUPLE_ELEM, @1.begin.line, @1.begin.column);
             n->name = std::move($1);
             n->add_child($3);
             $$ = n;
@@ -533,7 +540,7 @@ tuple_elem
     /* unnamed:  expr */
     | expr
         {
-            auto* n = ASTNode::make(NodeKind::TUPLE_ELEM, lexer.begin_location().line);
+            auto* n = ASTNode::make(NodeKind::TUPLE_ELEM, @1.begin.line, @1.begin.column);
             n->add_child($1);
             $$ = n;
         }
@@ -544,14 +551,14 @@ tuple_elem
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 type_indicator
-    : TOK_TYPE_INT              { $$ = ASTNode::make(NodeKind::TYPE_INT,    lexer.begin_location().line); }
-    | TOK_TYPE_REAL             { $$ = ASTNode::make(NodeKind::TYPE_REAL,   lexer.begin_location().line); }
-    | TOK_TYPE_BOOL             { $$ = ASTNode::make(NodeKind::TYPE_BOOL,   lexer.begin_location().line); }
-    | TOK_TYPE_STRING           { $$ = ASTNode::make(NodeKind::TYPE_STRING, lexer.begin_location().line); }
-    | TOK_NONE                  { $$ = ASTNode::make(NodeKind::TYPE_NONE,   lexer.begin_location().line); }
-    | TOK_LBRACKET TOK_RBRACKET { $$ = ASTNode::make(NodeKind::TYPE_ARRAY,  lexer.begin_location().line); }
-    | TOK_LBRACE  TOK_RBRACE    { $$ = ASTNode::make(NodeKind::TYPE_TUPLE,  lexer.begin_location().line); }
-    | TOK_FUNC                  { $$ = ASTNode::make(NodeKind::TYPE_FUNC,   lexer.begin_location().line); }
+    : TOK_TYPE_INT              { $$ = ASTNode::make(NodeKind::TYPE_INT,    @1.begin.line, @1.begin.column); }
+    | TOK_TYPE_REAL             { $$ = ASTNode::make(NodeKind::TYPE_REAL,   @1.begin.line, @1.begin.column); }
+    | TOK_TYPE_BOOL             { $$ = ASTNode::make(NodeKind::TYPE_BOOL,   @1.begin.line, @1.begin.column); }
+    | TOK_TYPE_STRING           { $$ = ASTNode::make(NodeKind::TYPE_STRING, @1.begin.line, @1.begin.column); }
+    | TOK_NONE                  { $$ = ASTNode::make(NodeKind::TYPE_NONE,   @1.begin.line, @1.begin.column); }
+    | TOK_LBRACKET TOK_RBRACKET { $$ = ASTNode::make(NodeKind::TYPE_ARRAY,  @1.begin.line, @1.begin.column); }
+    | TOK_LBRACE  TOK_RBRACE    { $$ = ASTNode::make(NodeKind::TYPE_TUPLE,  @1.begin.line, @1.begin.column); }
+    | TOK_FUNC                  { $$ = ASTNode::make(NodeKind::TYPE_FUNC,   @1.begin.line, @1.begin.column); }
     ;
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -561,7 +568,7 @@ type_indicator
 expr_list
     : expr
         {
-            auto* lst = ASTNode::make(NodeKind::BODY, lexer.begin_location().line);
+            auto* lst = ASTNode::make(NodeKind::BODY, @1.begin.line, @1.begin.column);
             lst->add_child($1);
             $$ = lst;
         }
@@ -570,7 +577,7 @@ expr_list
     ;
 
 opt_expr_list
-    : %empty      { $$ = ASTNode::make(NodeKind::BODY, lexer.begin_location().line); }
+    : %empty      { $$ = ASTNode::make(NodeKind::BODY, @$.begin.line, @$.begin.column); }
     | expr_list   { $$ = $1; }
     ;
 
