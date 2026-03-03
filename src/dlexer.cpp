@@ -23,8 +23,7 @@ int main(int argc, char* argv[]) {
 
     try {
         std::cout << dump_tokens(input);
-    }
-    catch (const yy::parser::syntax_error& err) {
+    } catch (const yy::parser::syntax_error& err) {
         std::cerr << "ERROR: " << err.what() << std::endl;
     }
     return 0;

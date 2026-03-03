@@ -31,8 +31,8 @@ private:
     std::istream& _input;
 
     std::vector<int> _line_size = {INT32_MIN, 0};
-    Location _begin_location  = {.line = 1, .col = 1};
-    Location _end_location          = {.line = 1, .col = 1};
+    Location _begin_location    = {.line = 1, .col = 1};
+    Location _end_location      = {.line = 1, .col = 1};
 
     void next_line();
     void next_col();

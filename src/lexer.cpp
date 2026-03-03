@@ -249,7 +249,8 @@ yy::parser::symbol_type Lexer::next() {
         if (n == '=')
             return yy::parser::make_TOK_NEQ();
         if (n == '/') {
-            while ((c = getch()) != '\n');
+            while ((c = getch()) != '\n')
+                ;
         }
         ungetch(n);
         return yy::parser::make_TOK_SLASH();
@@ -316,8 +317,4 @@ yy::parser::symbol_type Lexer::next() {
     }
 
     return yy::parser::token::YYUNDEF;
-
-    //const auto msg = std::format("syntax error: invalid token at {}:{}", 
-    //    _begin_location.line, _begin_location.col);
-    //throw yy::parser::syntax_error(msg);
 }
