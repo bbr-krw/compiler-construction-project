@@ -80,8 +80,8 @@ TEST_P(SuiteTest, ParseAndCompareGolden) {
     delete root;
 }
 
-// Generate parameterized tests for tests 1-150
-INSTANTIATE_TEST_SUITE_P(SuiteTests, SuiteTest, ::testing::Range(1, 151),
+// Generate parameterized tests for tests 1-151
+INSTANTIATE_TEST_SUITE_P(SuiteTests, SuiteTest, ::testing::Range(1, 152),
                          [](const ::testing::TestParamInfo<int>& info) {
                              return "test" + std::to_string(info.param);
                          });
