@@ -1,3 +1,3 @@
-[Program]  (line 1)
-  [Print]  (line 2)
-    [IntLit] 42  (line 1)
+[Program]  (loc 1:0)
+  [Print]  (loc 1:1)
+    [IntLit] 42  (loc 1:7)

@@ -1,4 +1,4 @@
-[Program]  (line 1)
-  [Print]  (line 2)
-    [UMinus]  (line 1)
-      [RealLit] 3.14  (line 1)
+[Program]  (loc 1:0)
+  [Print]  (loc 1:1)
+    [UMinus]  (loc 1:7)
+      [RealLit] 3.14  (loc 1:8)

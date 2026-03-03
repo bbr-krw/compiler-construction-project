@@ -22,13 +22,6 @@ for test_file in "$SUITE_DIR"/test*.d; do
   test_num=$(basename "$test_file" .d | sed 's/test//')
   gold_file="$SUITE_DIR/test${test_num}.lgold"
 
-  # Skip if gold file already exists
-  if [ -f "$gold_file" ]; then
-    echo "⊘ test$test_num: .lgold exists (skipping)"
-    ((skipped++))
-    continue
-  fi
-
   # Run dlexer and capture output
   output=$("$DLEXER" "$test_file" 2>/dev/null)
   exit_code=$?

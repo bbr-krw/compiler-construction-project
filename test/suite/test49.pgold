@@ -1,4 +1,4 @@
-[Program]  (line 1)
-  [Print]  (line 2)
-    [Not]  (line 1)
-      [BoolLit] 0  (false) (line 1)
+[Program]  (loc 1:0)
+  [Print]  (loc 1:1)
+    [Not]  (loc 1:7)
+      [BoolLit] 0  (false) (loc 1:11)

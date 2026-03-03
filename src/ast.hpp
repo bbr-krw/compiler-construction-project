@@ -88,6 +88,7 @@ template <class... Ts> struct overloaded : Ts... {
 struct ASTNode {
     NodeKind kind;
     int line{0};
+    int col{0};
 
     // Owning children list
     std::vector<ASTNode*> children;
@@ -102,7 +103,7 @@ struct ASTNode {
     std::string name;
 
     // ── Construction ───────────────────────────────────────────────────────
-    explicit ASTNode(NodeKind k, int ln = 0) : kind{k}, line{ln} {}
+    explicit ASTNode(NodeKind k, int ln = 0, int col = 0) : kind{k}, line{ln}, col{col} {}
 
     // Recursively delete owned children
     ~ASTNode() {
@@ -125,13 +126,13 @@ struct ASTNode {
     [[nodiscard]] const std::string& get_sval() const { return std::get<std::string>(payload); }
 
     // ── Factory methods (return owning raw pointer for parser use) ─────────
-    static ASTNode* make(NodeKind k, int ln = 0);
-    static ASTNode* make_int(long long v, int ln = 0);
-    static ASTNode* make_real(double v, int ln = 0);
-    static ASTNode* make_str(std::string s, int ln = 0);   // STR_LIT
-    static ASTNode* make_ident(std::string s, int ln = 0); // IDENT
-    static ASTNode* make_bool(bool v, int ln = 0);
-    static ASTNode* make_none(int ln = 0);
+    static ASTNode* make(NodeKind k, int ln = 0, int col = 0);
+    static ASTNode* make_int(long long v, int ln = 0, int col = 0);
+    static ASTNode* make_real(double v, int ln = 0, int col = 0);
+    static ASTNode* make_str(std::string s, int ln = 0, int col = 0);   // STR_LIT
+    static ASTNode* make_ident(std::string s, int ln = 0, int col = 0); // IDENT
+    static ASTNode* make_bool(bool v, int ln = 0, int col = 0);
+    static ASTNode* make_none(int ln = 0, int col = 0);
 
     // ── Output ─────────────────────────────────────────────────────────────
     [[nodiscard]] std::string_view kind_name() const noexcept;

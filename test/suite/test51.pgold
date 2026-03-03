@@ -1,1 +1,5 @@
-Parse error
+[Program]  (loc 1:0)
+  [Print]  (loc 1:1)
+    [Is]  (loc 1:7)
+      [RealLit] 3.14  (loc 1:7)
+      [TypeReal]  (loc 1:15)
