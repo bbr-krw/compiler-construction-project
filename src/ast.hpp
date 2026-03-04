@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -91,7 +92,7 @@ struct ASTNode {
     int col{0};
 
     // Owning children list
-    std::vector<ASTNode*> children;
+    std::vector<std::unique_ptr<ASTNode>> children;
 
     // Payload: literal values and identifiers
     using Payload = std::variant<std::monostate, long long, double, std::string>;
@@ -105,34 +106,31 @@ struct ASTNode {
     // ── Construction ───────────────────────────────────────────────────────
     explicit ASTNode(NodeKind k, int ln = 0, int col = 0) : kind{k}, line{ln}, col{col} {}
 
-    // Recursively delete owned children
-    ~ASTNode() {
-        for (auto* c : children)
-            delete c;
-    }
-
+    ~ASTNode()                         = default;
     ASTNode(const ASTNode&)            = delete;
     ASTNode& operator=(const ASTNode&) = delete;
     ASTNode(ASTNode&&)                 = default;
     ASTNode& operator=(ASTNode&&)      = default;
 
     // ── Children ───────────────────────────────────────────────────────────
-    void add_child(ASTNode* child) { children.push_back(child); }
-    void prepend_child(ASTNode* child) { children.insert(children.begin(), child); }
+    void add_child(std::unique_ptr<ASTNode> child) { children.push_back(std::move(child)); }
+    void prepend_child(std::unique_ptr<ASTNode> child) {
+        children.insert(children.begin(), std::move(child));
+    }
 
     // ── Payload accessors ──────────────────────────────────────────────────
     [[nodiscard]] long long get_ival() const { return std::get<long long>(payload); }
     [[nodiscard]] double get_rval() const { return std::get<double>(payload); }
     [[nodiscard]] const std::string& get_sval() const { return std::get<std::string>(payload); }
 
-    // ── Factory methods (return owning raw pointer for parser use) ─────────
-    static ASTNode* make(NodeKind k, int ln = 0, int col = 0);
-    static ASTNode* make_int(long long v, int ln = 0, int col = 0);
-    static ASTNode* make_real(double v, int ln = 0, int col = 0);
-    static ASTNode* make_str(std::string s, int ln = 0, int col = 0);   // STR_LIT
-    static ASTNode* make_ident(std::string s, int ln = 0, int col = 0); // IDENT
-    static ASTNode* make_bool(bool v, int ln = 0, int col = 0);
-    static ASTNode* make_none(int ln = 0, int col = 0);
+    // ── Factory methods ────────────────────────────────────────────────────
+    static std::unique_ptr<ASTNode> make(NodeKind k, int ln = 0, int col = 0);
+    static std::unique_ptr<ASTNode> make_int(long long v, int ln = 0, int col = 0);
+    static std::unique_ptr<ASTNode> make_real(double v, int ln = 0, int col = 0);
+    static std::unique_ptr<ASTNode> make_str(std::string s, int ln = 0, int col = 0);   // STR_LIT
+    static std::unique_ptr<ASTNode> make_ident(std::string s, int ln = 0, int col = 0); // IDENT
+    static std::unique_ptr<ASTNode> make_bool(bool v, int ln = 0, int col = 0);
+    static std::unique_ptr<ASTNode> make_none(int ln = 0, int col = 0);
 
     // ── Output ─────────────────────────────────────────────────────────────
     [[nodiscard]] std::string_view kind_name() const noexcept;

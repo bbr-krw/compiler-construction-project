@@ -24,7 +24,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
 
       - name: Configure
-        run: nix develop --command cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: nix develop --command cmake -B build -DCMAKE_BUILD_TYPE=Sanitizers
 
       - name: Build
         run: nix develop --command cmake --build build --parallel $(nproc)

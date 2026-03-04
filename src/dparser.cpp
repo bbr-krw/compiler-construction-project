@@ -13,6 +13,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <memory>
 #include <print>
 
 int main(int argc, char* argv[]) {
@@ -26,7 +27,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    ASTNode* root{nullptr};
+    std::unique_ptr<ASTNode> root;
     Lexer lexer{yyin};
     yy::parser parser{root, lexer};
 
@@ -37,11 +38,9 @@ int main(int argc, char* argv[]) {
 
     if (rc != 0 || !root) {
         std::println(stderr, "Parsing failed.");
-        delete root;
         return 1;
     }
 
     root->print(0);
-    delete root;
     return 0;
 }

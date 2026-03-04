@@ -2,47 +2,48 @@
 
 #include <format>
 #include <iostream>
+#include <memory>
 #include <ostream>
 #include <print>
 
 // ── Factory methods ───────────────────────────────────────────────────────────
 
-ASTNode* ASTNode::make(NodeKind k, int ln, int col) {
-    return new ASTNode{k, ln, col};
+std::unique_ptr<ASTNode> ASTNode::make(NodeKind k, int ln, int col) {
+    return std::make_unique<ASTNode>(k, ln, col);
 }
 
-ASTNode* ASTNode::make_int(long long v, int ln, int col) {
-    auto* n    = new ASTNode{NodeKind::INT_LIT, ln, col};
+std::unique_ptr<ASTNode> ASTNode::make_int(long long v, int ln, int col) {
+    auto n     = std::make_unique<ASTNode>(NodeKind::INT_LIT, ln, col);
     n->payload = v;
     return n;
 }
 
-ASTNode* ASTNode::make_real(double v, int ln, int col) {
-    auto* n    = new ASTNode{NodeKind::REAL_LIT, ln, col};
+std::unique_ptr<ASTNode> ASTNode::make_real(double v, int ln, int col) {
+    auto n     = std::make_unique<ASTNode>(NodeKind::REAL_LIT, ln, col);
     n->payload = v;
     return n;
 }
 
-ASTNode* ASTNode::make_str(std::string s, int ln, int col) {
-    auto* n    = new ASTNode{NodeKind::STR_LIT, ln, col};
+std::unique_ptr<ASTNode> ASTNode::make_str(std::string s, int ln, int col) {
+    auto n     = std::make_unique<ASTNode>(NodeKind::STR_LIT, ln, col);
     n->payload = std::move(s);
     return n;
 }
 
-ASTNode* ASTNode::make_ident(std::string s, int ln, int col) {
-    auto* n    = new ASTNode{NodeKind::IDENT, ln, col};
+std::unique_ptr<ASTNode> ASTNode::make_ident(std::string s, int ln, int col) {
+    auto n     = std::make_unique<ASTNode>(NodeKind::IDENT, ln, col);
     n->payload = std::move(s);
     return n;
 }
 
-ASTNode* ASTNode::make_bool(bool v, int ln, int col) {
-    auto* n    = new ASTNode{NodeKind::BOOL_LIT, ln, col};
+std::unique_ptr<ASTNode> ASTNode::make_bool(bool v, int ln, int col) {
+    auto n     = std::make_unique<ASTNode>(NodeKind::BOOL_LIT, ln, col);
     n->payload = static_cast<long long>(v ? 1 : 0);
     return n;
 }
 
-ASTNode* ASTNode::make_none(int ln, int col) {
-    return new ASTNode{NodeKind::NONE_LIT, ln, col};
+std::unique_ptr<ASTNode> ASTNode::make_none(int ln, int col) {
+    return std::make_unique<ASTNode>(NodeKind::NONE_LIT, ln, col);
 }
 
 // ── Kind name ─────────────────────────────────────────────────────────────────
@@ -191,7 +192,7 @@ void ASTNode::print(int indent, std::ostream& os) const {
     else
         os << "  (loc " << line << ":" << col << ")\n";
 
-    for (const auto* child : children)
+    for (const auto& child : children)
         if (child)
             child->print(indent + 1, os);
 }
