@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <memory>
 #include <sstream>
 #include <string>
 
@@ -20,8 +21,8 @@ std::string read_file(const std::string& path) {
 }
 
 // Helper to run parser on input string
-ASTNode* parse_input(const std::string& input) {
-    ASTNode* parse_result = nullptr;
+std::unique_ptr<ASTNode> parse_input(const std::string& input) {
+    std::unique_ptr<ASTNode> parse_result;
     std::istringstream input_stream(input);
     Lexer lexer(input_stream);
     yy::parser parser{parse_result, lexer};
@@ -60,7 +61,7 @@ TEST_P(SuiteTest, ParseAndCompareGolden) {
     std::string expected_gold = read_file(gold_path);
 
     // Parse the input
-    ASTNode* root = parse_input(input);
+    auto root = parse_input(input);
 
     // If gold file indicates parse failure, root should be null
     if (expected_gold.find("Parse error") != std::string::npos) {
@@ -76,8 +77,6 @@ TEST_P(SuiteTest, ParseAndCompareGolden) {
     std::string actual_output = captured.str();
 
     EXPECT_EQ(actual_output, expected_gold) << "AST output mismatch for test" << test_num;
-
-    delete root;
 }
 
 // Generate parameterized tests for tests 1-151

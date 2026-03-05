@@ -5,6 +5,25 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(SUPPORTED_BUILD_TYPES Debug Release RelWithDebInfo MinSizeRel Sanitizers)
+if(NOT CMAKE_CONFIGURATION_TYPES)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${SUPPORTED_BUILD_TYPES})
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Sanitizers")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(
+            -O1
+            -g
+            -fno-omit-frame-pointer
+            -fsanitize=address,undefined
+        )
+        add_link_options(-fsanitize=address,undefined)
+    else()
+        message(FATAL_ERROR "Sanitizers build type is only supported with GCC or Clang")
+    endif()
+endif()
+
 # ── Tool discovery ─────────────────────────────────────────────────────────────
 find_package(BISON REQUIRED)
 
