@@ -6,8 +6,6 @@
 #include <ostream>
 #include <print>
 
-// ── Factory methods ───────────────────────────────────────────────────────────
-
 std::unique_ptr<ASTNode> ASTNode::make(NodeKind k, int ln, int col) {
     return std::make_unique<ASTNode>(k, ln, col);
 }
@@ -45,8 +43,6 @@ std::unique_ptr<ASTNode> ASTNode::make_bool(bool v, int ln, int col) {
 std::unique_ptr<ASTNode> ASTNode::make_none(int ln, int col) {
     return std::make_unique<ASTNode>(NodeKind::NONE_LIT, ln, col);
 }
-
-// ── Kind name ─────────────────────────────────────────────────────────────────
 
 std::string_view ASTNode::kind_name() const noexcept {
     using enum NodeKind;
@@ -163,15 +159,12 @@ std::string_view ASTNode::kind_name() const noexcept {
     return "???";
 }
 
-// ── Pretty printer ────────────────────────────────────────────────────────────
-
 void ASTNode::print(int indent, std::ostream& os) const {
     for (int i = 0; i < indent; ++i)
         os << "  ";
 
     os << '[' << kind_name() << ']';
 
-    // Inline payload
     std::visit(overloaded{
                    [](std::monostate) {},
                    [&os](long long v) { os << ' ' << v; },
@@ -180,11 +173,9 @@ void ASTNode::print(int indent, std::ostream& os) const {
                },
                payload);
 
-    // Extra name metadata
     if (!name.empty())
         os << " name=" << name;
 
-    // Per-kind overrides for the inline suffix
     if (kind == NodeKind::BOOL_LIT)
         os << "  (" << (get_ival() ? "true" : "false") << ") (loc " << line << ":" << col << ")\n";
     else if (kind == NodeKind::DOT_INT)
