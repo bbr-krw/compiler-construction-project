@@ -18,8 +18,8 @@ success=0
 skipped=0
 failed=0
 
-for test_file in "$SUITE_DIR"/test*.d; do
-  test_num=$(basename "$test_file" .d | sed 's/test//')
+for test_file in "$SUITE_DIR"/test*.dl; do
+  test_num=$(basename "$test_file" .dl | sed 's/test//')
   gold_file="$SUITE_DIR/test${test_num}.pgold"
   
   # Run parser and capture output

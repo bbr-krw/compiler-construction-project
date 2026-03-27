@@ -18,7 +18,7 @@ static const std::string SUITE_DIR{TEST_SUITE_DIR};
 
 class LexerSuiteTest : public ::testing::TestWithParam<int> {
 protected:
-    std::string input_path(int n) const { return SUITE_DIR + "/test" + std::to_string(n) + ".d"; }
+    std::string input_path(int n) const { return SUITE_DIR + "/test" + std::to_string(n) + ".dl"; }
     std::string gold_path(int n) const {
         return SUITE_DIR + "/test" + std::to_string(n) + ".lgold";
     }
