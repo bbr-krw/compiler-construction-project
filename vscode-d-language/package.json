@@ -1,0 +1,28 @@
+{
+  "name": "d-language",
+  "displayName": "D Language",
+  "description": "Syntax highlighting for the D dynamic language (.dl files)",
+  "version": "0.1.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "d-language",
+        "aliases": ["D Language", "dlang"],
+        "extensions": [".dl"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "d-language",
+        "scopeName": "source.dl",
+        "path": "./syntaxes/d-language.tmLanguage.json"
+      }
+    ]
+  }
+}

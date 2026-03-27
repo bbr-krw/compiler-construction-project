@@ -39,14 +39,14 @@ static const std::string SUITE_DIR{TEST_SUITE_DIR};
 class SuiteTest : public ::testing::TestWithParam<int> {
 protected:
     std::string get_test_input_path(int test_num) const {
-        return SUITE_DIR + "/test" + std::to_string(test_num) + ".d";
+        return SUITE_DIR + "/test" + std::to_string(test_num) + ".dl";
     }
     std::string get_test_gold_path(int test_num) const {
         return SUITE_DIR + "/test" + std::to_string(test_num) + ".pgold";
     }
 };
 
-// Parameterized test: parse each .d file and compare AST output
+// Parameterized test: parse each .dl file and compare AST output
 TEST_P(SuiteTest, ParseAndCompareGolden) {
     int test_num           = GetParam();
     std::string input_path = get_test_input_path(test_num);

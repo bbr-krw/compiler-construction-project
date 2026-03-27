@@ -8,7 +8,7 @@ This is a **compiler frontend** (lexer + parser) for the D dynamic language, a c
 
 ### Component Flow
 ```
-Source Code (.d file)
+Source Code (.dl file)
     ↓
 Flex Lexer (lexer.l) → Tokens
     ↓                     ↓
@@ -76,8 +76,8 @@ Produces three binaries in `build/`: `dparser`, `dlexer`, `lexer_suite_tests`, `
 ### Running Parser / Lexer
 ```bash
 ./dparser                         # parse stdin, print AST
-./dparser ../test/suite/test1.d   # parse file, print AST
-./dlexer   ../test/suite/test1.d  # dump tokens for a file
+./dparser ../test/suite/test1.dl   # parse file, print AST
+./dlexer   ../test/suite/test1.dl  # dump tokens for a file
 ```
 
 ### Running Tests
@@ -87,10 +87,10 @@ ctest                  # runs LexerSuiteTests + ParserSuiteTests
 ./parser_suite_tests   # parser golden tests directly
 ```
 
-Tests are parameterised over `test/suite/test{1..150}.d`:
+Tests are parameterised over `test/suite/test{1..150}.dl`:
 - Lexer: compares `dump_tokens()` output against `.lgold` files
 - Parser: compares `root->print()` output against `.pgold` files
-- Skip gracefully if a `.d` / gold file is absent
+- Skip gracefully if a `.dl` / gold file is absent
 
 ### Regenerating Golden Files
 ```bash
@@ -130,7 +130,7 @@ parse_result = node;           // assign to out-param
 - Called for both double and single-quoted strings
 
 ### Testing Patterns
-- **Lexer suite** ([test/lexer_suite_test.cpp](test/lexer_suite_test.cpp)): calls `dump_tokens()` on `.d` files and diffs against `.lgold`
+- **Lexer suite** ([test/lexer_suite_test.cpp](test/lexer_suite_test.cpp)): calls `dump_tokens()` on `.dl` files and diffs against `.lgold`
 - **Parser suite** ([test/parser_suite_test.cpp](test/parser_suite_test.cpp)): runs parser via `yy_scan_string()` and diffs `root->print()` against `.pgold`
 - Both are GTest parameterised fixtures over test IDs 1–150; missing files are skipped
 
@@ -141,7 +141,7 @@ parse_result = node;           // assign to out-param
 2. Add token in [parser.y](src/parser.y) if new keyword needed
 3. Add lexer pattern in [lexer.l](src/lexer.l)
 4. Add parser production rule in [parser.y](src/parser.y)
-5. Rebuild and test: `./dparser test_input.d`
+5. Rebuild and test: `./dparser test_input.dl`
 6. Regenerate golden files if the new construct appears in suite tests
 
 ### Debugging Parse Errors
@@ -179,7 +179,7 @@ See [docs/Project_D_FULL.md](docs/Project_D_FULL.md) for full spec.
 
 - `src/` – lexer.l, parser.y, ast.hpp/cpp, dparser.cpp, dlexer.cpp, token_dump.hpp/cpp
 - `build/` – generated files (lexer.yy.*, parser.tab.*) and build artifacts
-- `test/suite/` – integration tests: `.d` input, `.lgold` lexer golden, `.pgold` parser golden
+- `test/suite/` – integration tests: `.dl` input, `.lgold` lexer golden, `.pgold` parser golden
 - `test/lexer_suite_test.cpp` – GTest lexer suite (parameterised, tests 1–150)
 - `test/parser_suite_test.cpp` – GTest parser suite (parameterised, tests 1–150)
 - `test/generate_gold_lexer.sh` / `test/generate_gold_parser.sh` – golden file generators
