@@ -1,0 +1,121 @@
+{
+  "scopeName": "source.dl",
+  "name": "D Language",
+  "fileTypes": ["dl"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#keyword-control" },
+    { "include": "#keyword-operator" },
+    { "include": "#type-indicator" },
+    { "include": "#boolean-literal" },
+    { "include": "#none-literal" },
+    { "include": "#operator" },
+    { "include": "#identifier" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.dl",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.dl",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.dl",
+              "match": "\\\\[ntrb'\"\\\\]"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.dl",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.dl",
+              "match": "\\\\[ntrb'\"\\\\]"
+            }
+          ]
+        }
+      ]
+    },
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.dl",
+          "match": "\\b[0-9]+\\.[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.dl",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+    "boolean-literal": {
+      "match": "\\b(true|false)\\b",
+      "name": "constant.language.boolean.dl"
+    },
+    "none-literal": {
+      "match": "\\bnone\\b",
+      "name": "constant.language.null.dl"
+    },
+    "keyword-control": {
+      "match": "\\b(if|then|else|end|while|for|in|loop|exit|return|func|is|var|print)\\b",
+      "name": "keyword.control.dl"
+    },
+    "keyword-operator": {
+      "match": "\\b(and|or|xor|not)\\b",
+      "name": "keyword.operator.logical.dl"
+    },
+    "type-indicator": {
+      "match": "\\b(int|real|bool|string)\\b",
+      "name": "support.type.dl"
+    },
+    "operator": {
+      "patterns": [
+        {
+          "name": "keyword.operator.assignment.dl",
+          "match": ":="
+        },
+        {
+          "name": "keyword.operator.arrow.dl",
+          "match": "=>"
+        },
+        {
+          "name": "keyword.operator.range.dl",
+          "match": "\\.\\."
+        },
+        {
+          "name": "keyword.operator.comparison.dl",
+          "match": "/=|<=|>=|<|>|="
+        },
+        {
+          "name": "keyword.operator.arithmetic.dl",
+          "match": "[+\\-*/]"
+        },
+        {
+          "name": "punctuation.separator.dl",
+          "match": "[,;]"
+        },
+        {
+          "name": "punctuation.accessor.dl",
+          "match": "\\."
+        }
+      ]
+    },
+    "identifier": {
+      "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b",
+      "name": "variable.other.dl"
+    }
+  }
+}
