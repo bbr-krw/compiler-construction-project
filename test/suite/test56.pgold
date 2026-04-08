@@ -1,1 +1,5 @@
-Parse error
+[Program]  (loc 1:0)
+  [Print]  (loc 1:1)
+    [Is]  (loc 1:7)
+      [TupleLit]  (loc 1:7)
+      [TypeTuple]  (loc 1:13)

@@ -1,24 +1,14 @@
-/*
- * main.cpp – entry point for the D language parser (C++23)
- *
- * Usage:
- *   dparser [file]
- *
- * Without arguments reads from stdin.
- * Prints the AST on success; exits with 1 on parse error.
- */
 #include "ast.hpp"
+#include "interpreter.hpp"
 #include "lexer.hpp"
 #include "parser.tab.hpp"
 #include "semantic_analyzer.hpp"
 
-#include <cstdio>
 #include <fstream>
 #include <memory>
 #include <print>
 
 int main(int argc, char* argv[]) {
-
     std::ifstream yyin;
     if (argc > 1) {
         yyin = std::ifstream(argv[1]);
@@ -29,20 +19,12 @@ int main(int argc, char* argv[]) {
     }
 
     std::unique_ptr<ASTNode> root;
-    Lexer lexer{yyin};
+    Lexer lexer{argc > 1 ? static_cast<std::istream&>(yyin) : std::cin};
     yy::parser parser{root, lexer};
-
-    const int rc = parser.parse();
-
-    if (argc > 1)
-        yyin.close();
-
-    if (rc != 0 || !root) {
+    if (parser.parse() != 0 || !root) {
         std::println(stderr, "Parsing failed.");
         return 1;
     }
-
-    root->print(0);
 
     SemanticAnalyzer sema;
     sema.analyze(*root);
@@ -52,5 +34,12 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
+    try {
+        Interpreter interp{std::cout};
+        interp.run(*root);
+    } catch (const std::exception& ex) {
+        std::println(stderr, "Runtime error: {}", ex.what());
+        return 3;
+    }
     return 0;
 }

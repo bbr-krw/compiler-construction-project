@@ -40,7 +40,9 @@ add_library(lexer_lib
     src/lexer.cpp
     ${BISON_parser_OUTPUTS}
     src/ast.cpp
+    src/print_visitor.cpp
     src/token_dump.cpp
+    src/semantic_analyzer.cpp
 )
 
 target_include_directories(lexer_lib
@@ -136,6 +138,28 @@ target_compile_definitions(lexer_suite_tests PRIVATE
 
 add_test(NAME LexerSuiteTests COMMAND lexer_suite_tests)
 
+# ── Semantic analyzer unit tests ───────────────────────────────────────────────
+add_executable(sema_tests
+    test/sema_test.cpp
+)
+
+target_link_libraries(sema_tests
+    PRIVATE
+    GTest::gtest
+    GTest::gtest_main
+    lexer_lib
+)
+
+target_include_directories(sema_tests
+    PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_compile_options(sema_tests PRIVATE -Wall -Wextra)
+
+add_test(NAME SemaTests COMMAND sema_tests)
+
 # ── clang-format targets ───────────────────────────────────────────────────────
 find_program(CLANG_FORMAT clang-format)
 if(CLANG_FORMAT)
@@ -155,3 +179,18 @@ if(CLANG_FORMAT)
 else()
     message(STATUS "clang-format not found; 'format' and 'format-check' targets unavailable")
 endif()
+
+# ── Interpreter ────────────────────────────────────────────────────────────────
+target_sources(lexer_lib PRIVATE src/interpreter.cpp)
+
+add_executable(dinterp src/dinterp.cpp)
+target_link_libraries(dinterp PRIVATE lexer_lib)
+target_include_directories(dinterp PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_options(dinterp PRIVATE -Wall -Wextra)
+
+# ── Interpreter suite tests ────────────────────────────────────────────────────
+add_executable(interp_suite_tests test/interp_suite_test.cpp)
+target_link_libraries(interp_suite_tests PRIVATE GTest::gtest GTest::gtest_main lexer_lib)
+target_include_directories(interp_suite_tests PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(interp_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
+add_test(NAME InterpSuiteTests COMMAND interp_suite_tests)
