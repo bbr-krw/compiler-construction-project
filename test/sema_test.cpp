@@ -12,9 +12,9 @@
 
 static std::unique_ptr<ASTNode> parse(const std::string& src) {
     std::unique_ptr<ASTNode> root;
-    std::istringstream       stream(src);
-    Lexer                    lexer(stream);
-    yy::parser               parser{root, lexer};
+    std::istringstream stream(src);
+    Lexer lexer(stream);
+    yy::parser parser{root, lexer};
     const int rc = parser.parse();
     if (rc != 0 || !root)
         return nullptr;
@@ -22,8 +22,8 @@ static std::unique_ptr<ASTNode> parse(const std::string& src) {
 }
 
 struct SemaResult {
-    bool                              ok;
-    std::vector<SemanticError>        errors;
+    bool ok;
+    std::vector<SemanticError> errors;
 };
 
 static SemaResult analyze(const std::string& src) {

@@ -28,22 +28,23 @@ void SemanticAnalyzer::pop_scope() {
 
 void SemanticAnalyzer::declare(const std::string& name, int line, int col) {
     auto& scope = scopes_.back();
-    auto  it    = scope.find(name);
+    auto it     = scope.find(name);
     if (it != scope.end()) {
         error(line, col,
-              std::format("'{}' already declared in this scope (previously at line {})",
-                          name, it->second));
+              std::format("'{}' already declared in this scope (previously at line {})", name,
+                          it->second));
     } else {
         scope[name] = line;
     }
 }
 
-void SemanticAnalyzer::resolve(const std::string& name, int line, int col) {
-    for (auto it = scopes_.rbegin(); it != scopes_.rend(); ++it) {
-        if (it->count(name))
-            return;
+int SemanticAnalyzer::resolve(const std::string& name, int line, int col) {
+    for (int d = static_cast<int>(scopes_.size()) - 1; d >= 0; --d) {
+        if (scopes_[d].count(name))
+            return static_cast<int>(scopes_.size()) - 1 - d;
     }
     error(line, col, std::format("use of undeclared variable '{}'", name));
+    return -1;
 }
 
 void SemanticAnalyzer::error(int line, int col, std::string msg) {
@@ -82,8 +83,7 @@ void SemanticAnalyzer::visit(const VarDefNode& n) {
     //
     // For all other initialisers, evaluate first so that `var x := x` correctly
     // reports x as undeclared.
-    const bool is_func_init =
-        n.init && dynamic_cast<const FuncLitNode*>(n.init.get()) != nullptr;
+    const bool is_func_init = n.init && dynamic_cast<const FuncLitNode*>(n.init.get()) != nullptr;
     if (is_func_init)
         declare(n.varname, n.line, n.col);
     if (n.init)
@@ -183,7 +183,7 @@ void SemanticAnalyzer::visit(const IsNode& n) {
 }
 
 void SemanticAnalyzer::visit(const IdentNode& n) {
-    resolve(n.ident_name, n.line, n.col);
+    n.resolved_depth = resolve(n.ident_name, n.line, n.col);
 }
 
 void SemanticAnalyzer::visit(const IndexNode& n) {

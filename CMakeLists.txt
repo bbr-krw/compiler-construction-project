@@ -179,3 +179,18 @@ if(CLANG_FORMAT)
 else()
     message(STATUS "clang-format not found; 'format' and 'format-check' targets unavailable")
 endif()
+
+# ── Interpreter ────────────────────────────────────────────────────────────────
+target_sources(lexer_lib PRIVATE src/interpreter.cpp)
+
+add_executable(dinterp src/dinterp.cpp)
+target_link_libraries(dinterp PRIVATE lexer_lib)
+target_include_directories(dinterp PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_options(dinterp PRIVATE -Wall -Wextra)
+
+# ── Interpreter suite tests ────────────────────────────────────────────────────
+add_executable(interp_suite_tests test/interp_suite_test.cpp)
+target_link_libraries(interp_suite_tests PRIVATE GTest::gtest GTest::gtest_main lexer_lib)
+target_include_directories(interp_suite_tests PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(interp_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
+add_test(NAME InterpSuiteTests COMMAND interp_suite_tests)

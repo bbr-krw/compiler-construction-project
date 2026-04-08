@@ -81,8 +81,7 @@ struct IASTVisitor {
 // visit() overloads they care about.  The template parameter Derived enables
 // CRTP dispatch in subclasses that need it (e.g. delegating traversal).
 
-template <typename Derived>
-struct ASTVisitorBase : IASTVisitor {
+template <typename Derived> struct ASTVisitorBase : IASTVisitor {
     void visit(const ProgramNode&) override {}
     void visit(const BodyNode&) override {}
     void visit(const VarDeclNode&) override {}

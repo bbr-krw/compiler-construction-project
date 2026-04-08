@@ -22,7 +22,7 @@ struct ASTNode {
     ASTNode& operator=(ASTNode&&)      = default;
 
     virtual std::string_view kind_name() const noexcept = 0;
-    virtual void accept(IASTVisitor& v) const = 0;
+    virtual void accept(IASTVisitor& v) const           = 0;
 
     void print(int indent, std::ostream& os) const;
     void print(int indent = 0) const;
@@ -181,6 +181,7 @@ struct IsNode : ASTNode {
 
 struct IdentNode : ASTNode {
     std::string ident_name;
+    mutable int resolved_depth = -1; // set by SemanticAnalyzer; -1 = not yet resolved
     explicit IdentNode(std::string name, int ln = 0, int c = 0)
         : ASTNode{ln, c},
           ident_name{std::move(name)} {}

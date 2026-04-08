@@ -62,7 +62,7 @@
 %type <std::unique_ptr<ASTNode>> if_stmt if_short_stmt
 %type <std::unique_ptr<ASTNode>> loop_stmt while_stmt for_stmt
 %type <std::unique_ptr<ASTNode>> exit_stmt return_stmt print_stmt
-%type <std::unique_ptr<ASTNode>> expr relation factor term unary primary postfix
+%type <std::unique_ptr<ASTNode>> expr and_expr relation factor term unary primary postfix
 %type <std::unique_ptr<ASTNode>> func_literal
 %type <std::unique_ptr<ParamListNode>> param_list
 %type <std::vector<std::unique_ptr<ASTNode>>> expr_list opt_expr_list
@@ -260,11 +260,17 @@ print_stmt
         }
     ;
 
+// or/xor bind less tightly than and
 expr
+    : and_expr                      { $$ = std::move($1); }
+    | expr TOK_OR  and_expr         { auto n=std::make_unique<BinOpNode>(BinOpNode::Op::OR,  $1->line, $1->col); n->left=std::move($1); n->right=std::move($3); $$=std::move(n); }
+    | expr TOK_XOR and_expr         { auto n=std::make_unique<BinOpNode>(BinOpNode::Op::XOR, $1->line, $1->col); n->left=std::move($1); n->right=std::move($3); $$=std::move(n); }
+    ;
+
+// and binds more tightly than or/xor
+and_expr
     : relation                      { $$ = std::move($1); }
-    | expr TOK_OR  relation         { auto n=std::make_unique<BinOpNode>(BinOpNode::Op::OR,  $1->line, $1->col); n->left=std::move($1); n->right=std::move($3); $$=std::move(n); }
-    | expr TOK_AND relation         { auto n=std::make_unique<BinOpNode>(BinOpNode::Op::AND, $1->line, $1->col); n->left=std::move($1); n->right=std::move($3); $$=std::move(n); }
-    | expr TOK_XOR relation         { auto n=std::make_unique<BinOpNode>(BinOpNode::Op::XOR, $1->line, $1->col); n->left=std::move($1); n->right=std::move($3); $$=std::move(n); }
+    | and_expr TOK_AND relation     { auto n=std::make_unique<BinOpNode>(BinOpNode::Op::AND, $1->line, $1->col); n->left=std::move($1); n->right=std::move($3); $$=std::move(n); }
     ;
 
 relation
@@ -423,6 +429,10 @@ literal
 array_literal
     : TOK_LBRACKET TOK_RBRACKET
         { $$ = std::make_unique<ArrayLitNode>(@1.begin.line, @1.begin.column); }
+
+tuple_literal
+    : TOK_LBRACE TOK_RBRACE
+        { $$ = std::make_unique<TupleLitNode>(@1.begin.line, @1.begin.column); }
     | TOK_LBRACKET expr_list TOK_RBRACKET
         {
             auto n = std::make_unique<ArrayLitNode>(@1.begin.line, @1.begin.column);
