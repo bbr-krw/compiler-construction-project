@@ -1,0 +1,6 @@
+var mul := func(a) => func(b) => a * b
+var double := mul(2)
+var triple := mul(3)
+print double(5)
+print triple(5)
+print double(triple(2))

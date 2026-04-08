@@ -1,0 +1,6 @@
+var x := 10
+var get_x := func => x
+var set_x := func(v) is x := v end
+print get_x()
+set_x(42)
+print get_x()

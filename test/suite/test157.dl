@@ -1,0 +1,13 @@
+var make_counter := func is
+    var n := 0
+    return func is
+        n := n + 1
+        return n
+    end
+end
+var c1 := make_counter()
+var c2 := make_counter()
+print c1()
+print c1()
+print c2()
+print c1()

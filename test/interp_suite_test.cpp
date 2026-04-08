@@ -50,7 +50,7 @@ TEST_P(InterpSuiteTest, RunAndCompareGolden) {
     EXPECT_EQ(out.str(), expected) << "output mismatch for test" << n;
 }
 
-INSTANTIATE_TEST_SUITE_P(Suite, InterpSuiteTest, ::testing::Range(1, 152),
+INSTANTIATE_TEST_SUITE_P(Suite, InterpSuiteTest, ::testing::Range(1, 159),
                          [](const ::testing::TestParamInfo<int>& i) {
                              return "test" + std::to_string(i.param);
                          });
