@@ -1,0 +1,5 @@
+var x := 10
+var get := func => x
+print get()
+x := 20
+print get()

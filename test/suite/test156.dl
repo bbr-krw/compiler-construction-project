@@ -1,0 +1,11 @@
+var make_counter := func(start) is
+    var n := start
+    return func is
+        n := n + 1
+        return n
+    end
+end
+var c := make_counter(0)
+print c()
+print c()
+print c()

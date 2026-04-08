@@ -1,0 +1,8 @@
+var count := 0
+var inc := func is
+    count := count + 1
+    return count
+end
+print inc()
+print inc()
+print inc()
