@@ -64,6 +64,13 @@ void Interpreter::run(const ASTNode& root) {
     env_.clear();
     push_frame();
     root.accept(*this);
+    // Break shared_ptr reference cycles: closures capture env frames by
+    // shared_ptr, and those frames may store the same closures as variables.
+    // Clear values first (dropping closure→frame refs), then release frames.
+    val_ = {};
+    for (auto& frame : env_)
+        frame->clear();
+    env_.clear();
 }
 
 void Interpreter::push_frame() {
