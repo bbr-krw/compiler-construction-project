@@ -40,7 +40,9 @@ add_library(lexer_lib
     src/lexer.cpp
     ${BISON_parser_OUTPUTS}
     src/ast.cpp
+    src/print_visitor.cpp
     src/token_dump.cpp
+    src/semantic_analyzer.cpp
 )
 
 target_include_directories(lexer_lib
@@ -135,6 +137,28 @@ target_compile_definitions(lexer_suite_tests PRIVATE
 )
 
 add_test(NAME LexerSuiteTests COMMAND lexer_suite_tests)
+
+# ── Semantic analyzer unit tests ───────────────────────────────────────────────
+add_executable(sema_tests
+    test/sema_test.cpp
+)
+
+target_link_libraries(sema_tests
+    PRIVATE
+    GTest::gtest
+    GTest::gtest_main
+    lexer_lib
+)
+
+target_include_directories(sema_tests
+    PUBLIC
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_compile_options(sema_tests PRIVATE -Wall -Wextra)
+
+add_test(NAME SemaTests COMMAND sema_tests)
 
 # ── clang-format targets ───────────────────────────────────────────────────────
 find_program(CLANG_FORMAT clang-format)

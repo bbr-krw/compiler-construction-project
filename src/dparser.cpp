@@ -10,6 +10,7 @@
 #include "ast.hpp"
 #include "lexer.hpp"
 #include "parser.tab.hpp"
+#include "semantic_analyzer.hpp"
 
 #include <cstdio>
 #include <fstream>
@@ -42,5 +43,14 @@ int main(int argc, char* argv[]) {
     }
 
     root->print(0);
+
+    SemanticAnalyzer sema;
+    sema.analyze(*root);
+    if (!sema.ok()) {
+        for (const auto& e : sema.errors())
+            std::println(stderr, "Semantic error at {}:{}: {}", e.line, e.col, e.message);
+        return 2;
+    }
+
     return 0;
 }

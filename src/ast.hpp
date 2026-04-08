@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ast_visitor.hpp"
+
 #include <format>
 #include <memory>
 #include <ostream>
@@ -20,9 +22,7 @@ struct ASTNode {
     ASTNode& operator=(ASTNode&&)      = default;
 
     virtual std::string_view kind_name() const noexcept = 0;
-    virtual void print_inline(std::ostream&) const {}
-    virtual void print_suffix(std::ostream& os) const;
-    virtual void print_children(int indent, std::ostream&) const {}
+    virtual void accept(IASTVisitor& v) const = 0;
 
     void print(int indent, std::ostream& os) const;
     void print(int indent = 0) const;
@@ -42,21 +42,21 @@ struct ProgramNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> stmts;
     explicit ProgramNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "Program"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct BodyNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> stmts;
     explicit BodyNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "Body"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct VarDeclNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> defs; // VarDefNode children
     explicit VarDeclNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "VarDecl"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct VarDefNode : ASTNode {
@@ -64,8 +64,7 @@ struct VarDefNode : ASTNode {
     std::unique_ptr<ASTNode> init; // optional initialiser expression
     explicit VarDefNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "VarDef"; }
-    void print_inline(std::ostream& os) const override;
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct AssignNode : ASTNode {
@@ -73,7 +72,7 @@ struct AssignNode : ASTNode {
     std::unique_ptr<ASTNode> rhs;
     explicit AssignNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "Assign"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct IfNode : ASTNode {
@@ -82,7 +81,7 @@ struct IfNode : ASTNode {
     std::unique_ptr<ASTNode> else_body; // optional
     explicit IfNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "If"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct IfShortNode : ASTNode {
@@ -90,7 +89,7 @@ struct IfShortNode : ASTNode {
     std::unique_ptr<ASTNode> stmt;
     explicit IfShortNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "IfShort"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct WhileNode : ASTNode {
@@ -98,7 +97,7 @@ struct WhileNode : ASTNode {
     std::unique_ptr<ASTNode> body;
     explicit WhileNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "While"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct ForRangeNode : ASTNode {
@@ -108,8 +107,7 @@ struct ForRangeNode : ASTNode {
     std::unique_ptr<ASTNode> body;
     explicit ForRangeNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "ForRange"; }
-    void print_inline(std::ostream& os) const override;
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct ForIterNode : ASTNode {
@@ -118,34 +116,34 @@ struct ForIterNode : ASTNode {
     std::unique_ptr<ASTNode> body;
     explicit ForIterNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "ForIter"; }
-    void print_inline(std::ostream& os) const override;
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct LoopInfNode : ASTNode {
     std::unique_ptr<ASTNode> body;
     explicit LoopInfNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "LoopInf"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct ExitNode : ASTNode {
     explicit ExitNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "Exit"; }
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct ReturnNode : ASTNode {
     std::unique_ptr<ASTNode> value; // optional return expression
     explicit ReturnNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "Return"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct PrintNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> exprs;
     explicit PrintNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "Print"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 // ── Binary operators ──────────────────────────────────────────────────────────
@@ -157,7 +155,7 @@ struct BinOpNode : ASTNode {
     std::unique_ptr<ASTNode> right;
     explicit BinOpNode(Op o, int ln = 0, int c = 0) : ASTNode{ln, c}, op{o} {}
     std::string_view kind_name() const noexcept override;
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 // ── Unary operators ───────────────────────────────────────────────────────────
@@ -168,7 +166,7 @@ struct UnaryOpNode : ASTNode {
     std::unique_ptr<ASTNode> operand;
     explicit UnaryOpNode(Op o, int ln = 0, int c = 0) : ASTNode{ln, c}, op{o} {}
     std::string_view kind_name() const noexcept override;
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct IsNode : ASTNode {
@@ -176,7 +174,7 @@ struct IsNode : ASTNode {
     std::unique_ptr<ASTNode> type_node;
     explicit IsNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "Is"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 // ── Postfix / access ──────────────────────────────────────────────────────────
@@ -187,7 +185,7 @@ struct IdentNode : ASTNode {
         : ASTNode{ln, c},
           ident_name{std::move(name)} {}
     std::string_view kind_name() const noexcept override { return "Ident"; }
-    void print_inline(std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct IndexNode : ASTNode {
@@ -195,7 +193,7 @@ struct IndexNode : ASTNode {
     std::unique_ptr<ASTNode> index_expr;
     explicit IndexNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "Index"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct CallNode : ASTNode {
@@ -203,7 +201,7 @@ struct CallNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> args;
     explicit CallNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "Call"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct DotFieldNode : ASTNode {
@@ -211,8 +209,7 @@ struct DotFieldNode : ASTNode {
     std::unique_ptr<ASTNode> base;
     explicit DotFieldNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "DotField"; }
-    void print_inline(std::ostream& os) const override;
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct DotIntNode : ASTNode {
@@ -220,9 +217,7 @@ struct DotIntNode : ASTNode {
     std::unique_ptr<ASTNode> base;
     explicit DotIntNode(long long idx, int ln = 0, int c = 0) : ASTNode{ln, c}, index{idx} {}
     std::string_view kind_name() const noexcept override { return "DotInt"; }
-    void print_inline(std::ostream& os) const override;
-    void print_suffix(std::ostream& os) const override;
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 // ── Literals ──────────────────────────────────────────────────────────────────
@@ -231,14 +226,14 @@ struct IntLitNode : ASTNode {
     long long value;
     explicit IntLitNode(long long v, int ln = 0, int c = 0) : ASTNode{ln, c}, value{v} {}
     std::string_view kind_name() const noexcept override { return "IntLit"; }
-    void print_inline(std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct RealLitNode : ASTNode {
     double value;
     explicit RealLitNode(double v, int ln = 0, int c = 0) : ASTNode{ln, c}, value{v} {}
     std::string_view kind_name() const noexcept override { return "RealLit"; }
-    void print_inline(std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct StrLitNode : ASTNode {
@@ -247,34 +242,34 @@ struct StrLitNode : ASTNode {
         : ASTNode{ln, c},
           value{std::move(v)} {}
     std::string_view kind_name() const noexcept override { return "StrLit"; }
-    void print_inline(std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct BoolLitNode : ASTNode {
     bool value;
     explicit BoolLitNode(bool v, int ln = 0, int c = 0) : ASTNode{ln, c}, value{v} {}
     std::string_view kind_name() const noexcept override { return "BoolLit"; }
-    void print_inline(std::ostream& os) const override;
-    void print_suffix(std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct NoneLitNode : ASTNode {
     explicit NoneLitNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "NoneLit"; }
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct ArrayLitNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> elems;
     explicit ArrayLitNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "ArrayLit"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct TupleLitNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> elems; // TupleElemNode children
     explicit TupleLitNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "TupleLit"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct TupleElemNode : ASTNode {
@@ -282,15 +277,14 @@ struct TupleElemNode : ASTNode {
     std::unique_ptr<ASTNode> expr;
     explicit TupleElemNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "TupleElem"; }
-    void print_inline(std::ostream& os) const override;
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct ParamListNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> params; // IdentNode children
     explicit ParamListNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "ParamList"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct FuncLitNode : ASTNode {
@@ -298,7 +292,7 @@ struct FuncLitNode : ASTNode {
     std::unique_ptr<ASTNode> body;   // BodyNode
     explicit FuncLitNode(int ln = 0, int c = 0) : ASTNode{ln, c} {}
     std::string_view kind_name() const noexcept override { return "FuncLit"; }
-    void print_children(int indent, std::ostream& os) const override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 // ── Type indicators ───────────────────────────────────────────────────────────
@@ -308,4 +302,5 @@ struct TypeNode : ASTNode {
     Type type;
     explicit TypeNode(Type t, int ln = 0, int c = 0) : ASTNode{ln, c}, type{t} {}
     std::string_view kind_name() const noexcept override;
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
