@@ -1,16 +1,14 @@
 #pragma once
 
+#include "ast.hpp"
 #include "ast_visitor.hpp"
 
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-struct ASTNode;
-
 struct SemanticError {
-    int line{0};
-    int col{0};
+    Location loc{};
     std::string message;
 };
 
@@ -61,14 +59,14 @@ private:
     void push_scope();
     void pop_scope();
 
-    void declare(const std::string& name, int line, int col);
+    void declare(const std::string& name, Location loc);
 
-    int resolve(const std::string& name, int line, int col);
+    int resolve(const std::string& name, Location loc);
 
     bool in_loop() const noexcept { return loop_depth_ > 0; }
     bool in_func() const noexcept { return func_depth_ > 0; }
 
-    void error(int line, int col, std::string msg);
+    void error(Location loc, std::string msg);
 
     void accept(const ASTNode* n);
 };

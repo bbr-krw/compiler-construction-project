@@ -544,14 +544,14 @@ TEST(SemaError, ErrorLineIsCorrect) {
     auto r = analyze("var x := 1\nprint z");
     ASSERT_FALSE(r.ok);
     ASSERT_EQ(r.errors.size(), 1u);
-    EXPECT_EQ(r.errors[0].line, 2);
+    EXPECT_EQ(r.errors[0].loc.line, 2);
 }
 
 TEST(SemaError, DuplicateDeclLineIsCorrect) {
     auto r = analyze("var x := 1\nvar x := 2");
     ASSERT_FALSE(r.ok);
     ASSERT_EQ(r.errors.size(), 1u);
-    EXPECT_EQ(r.errors[0].line, 2);
+    EXPECT_EQ(r.errors[0].loc.line, 2);
     EXPECT_TRUE(has_error(r, "line 1"));
 }
 

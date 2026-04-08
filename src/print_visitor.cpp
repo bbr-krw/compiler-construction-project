@@ -14,7 +14,7 @@ void PrintVisitor::put_indent() const {
 }
 
 void PrintVisitor::put_suffix(const ASTNode& n) {
-    os_ << "  (loc " << n.line << ':' << n.col << ")\n";
+    os_ << "  (loc " << n.loc.line << ':' << n.loc.col << ")\n";
 }
 
 void PrintVisitor::recurse(const ASTNode* n) {
@@ -206,7 +206,7 @@ void PrintVisitor::visit(const DotIntNode& n) {
     put_indent();
     os_ << '[' << n.kind_name() << ']';
     os_ << ' ' << n.index;
-    os_ << "  (." << n.index << ") (loc " << n.line << ':' << n.col << ")\n";
+    os_ << "  (." << n.index << ") (loc " << n.loc.line << ':' << n.loc.col << ")\n";
     recurse(n.base.get());
 }
 
@@ -237,7 +237,8 @@ void PrintVisitor::visit(const BoolLitNode& n) {
     put_indent();
     os_ << '[' << n.kind_name() << ']';
     os_ << ' ' << (n.value ? 1LL : 0LL);
-    os_ << "  (" << (n.value ? "true" : "false") << ") (loc " << n.line << ':' << n.col << ")\n";
+    os_ << "  (" << (n.value ? "true" : "false") << ") (loc " << n.loc.line << ':' << n.loc.col
+        << ")\n";
 }
 
 void PrintVisitor::visit(const NoneLitNode& n) {

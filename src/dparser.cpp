@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
     sema.analyze(*root);
     if (!sema.ok()) {
         for (const auto& e : sema.errors())
-            std::println(stderr, "Semantic error at {}:{}: {}", e.line, e.col, e.message);
+            std::println(stderr, "Semantic error at {}:{}: {}", e.loc.line, e.loc.col, e.message);
         return 2;
     }
 

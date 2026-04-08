@@ -18,23 +18,23 @@ void ASTNode::print(int indent) const {
 
 // ── Factory helpers ───────────────────────────────────────────────────────────
 
-std::unique_ptr<ASTNode> ASTNode::make_int(long long v, int ln, int col) {
-    return std::make_unique<IntLitNode>(v, ln, col);
+std::unique_ptr<ASTNode> ASTNode::make_int(long long v, Location loc) {
+    return std::make_unique<IntLitNode>(v, loc);
 }
-std::unique_ptr<ASTNode> ASTNode::make_real(double v, int ln, int col) {
-    return std::make_unique<RealLitNode>(v, ln, col);
+std::unique_ptr<ASTNode> ASTNode::make_real(double v, Location loc) {
+    return std::make_unique<RealLitNode>(v, loc);
 }
-std::unique_ptr<ASTNode> ASTNode::make_str(std::string s, int ln, int col) {
-    return std::make_unique<StrLitNode>(std::move(s), ln, col);
+std::unique_ptr<ASTNode> ASTNode::make_str(std::string s, Location loc) {
+    return std::make_unique<StrLitNode>(std::move(s), loc);
 }
-std::unique_ptr<ASTNode> ASTNode::make_ident(std::string s, int ln, int col) {
-    return std::make_unique<IdentNode>(std::move(s), ln, col);
+std::unique_ptr<ASTNode> ASTNode::make_ident(std::string s, Location loc) {
+    return std::make_unique<IdentNode>(std::move(s), loc);
 }
-std::unique_ptr<ASTNode> ASTNode::make_bool(bool v, int ln, int col) {
-    return std::make_unique<BoolLitNode>(v, ln, col);
+std::unique_ptr<ASTNode> ASTNode::make_bool(bool v, Location loc) {
+    return std::make_unique<BoolLitNode>(v, loc);
 }
-std::unique_ptr<ASTNode> ASTNode::make_none(int ln, int col) {
-    return std::make_unique<NoneLitNode>(ln, col);
+std::unique_ptr<ASTNode> ASTNode::make_none(Location loc) {
+    return std::make_unique<NoneLitNode>(loc);
 }
 
 // ── BinOpNode::kind_name ──────────────────────────────────────────────────────
