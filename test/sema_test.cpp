@@ -8,8 +8,6 @@
 #include <sstream>
 #include <string>
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 static std::unique_ptr<ASTNode> parse(const std::string& src) {
     std::unique_ptr<ASTNode> root;
     std::istringstream stream(src);
@@ -36,7 +34,6 @@ static SemaResult analyze(const std::string& src) {
     return {sa.ok(), sa.errors()};
 }
 
-// Finds the first error whose message contains `substr`.
 static bool has_error(const SemaResult& r, const std::string& substr) {
     for (const auto& e : r.errors)
         if (e.message.find(substr) != std::string::npos)
@@ -44,22 +41,17 @@ static bool has_error(const SemaResult& r, const std::string& substr) {
     return false;
 }
 
-// ── Valid programs ─────────────────────────────────────────────────────────────
-
 TEST(SemaValid, SimpleVarDeclAndUse) {
-    // Declaring a variable and printing it is valid.
     auto r = analyze("var x := 42\nprint x");
     EXPECT_TRUE(r.ok);
 }
 
 TEST(SemaValid, MultipleVarDeclOnOneLine) {
-    // var x, y := 1 declares two variables; both usable.
     auto r = analyze("var x, y := 1\nprint x\nprint y");
     EXPECT_TRUE(r.ok);
 }
 
 TEST(SemaValid, NestedScopeShadowing) {
-    // The spec allows a variable in a nested scope to shadow an outer one.
     auto r = analyze(R"(
 var x := 1
 if x = 1 then
@@ -72,7 +64,6 @@ print x
 }
 
 TEST(SemaValid, WhileLoopWithExit) {
-    // exit is valid inside a while loop.
     auto r = analyze(R"(
 var i := 0
 while i < 10 loop
@@ -84,7 +75,6 @@ end
 }
 
 TEST(SemaValid, InfiniteLoopWithExit) {
-    // exit is valid inside an infinite loop construct.
     auto r = analyze(R"(
 var i := 0
 loop
@@ -96,7 +86,6 @@ end
 }
 
 TEST(SemaValid, ForRangeNoIterator) {
-    // for 1..3 loop ... end — valid, no iterator variable.
     auto r = analyze(R"(
 for 1..3 loop
     print "hello"
@@ -106,7 +95,6 @@ end
 }
 
 TEST(SemaValid, ForRangeWithIterator) {
-    // Iterator variable is accessible inside the loop body.
     auto r = analyze(R"(
 var sum := 0
 for i in 1..5 loop
@@ -118,7 +106,6 @@ print sum
 }
 
 TEST(SemaValid, ForIterOverArray) {
-    // for item in arr loop — item is accessible inside the body.
     auto r = analyze(R"(
 var arr := [10, 20, 30]
 var total := 0
@@ -131,7 +118,6 @@ print total
 }
 
 TEST(SemaValid, ForIterNoIteratorVariable) {
-    // for arr loop — iterating without naming the element.
     auto r = analyze(R"(
 var arr := [1, 2, 3]
 for arr loop
@@ -142,7 +128,6 @@ end
 }
 
 TEST(SemaValid, NestedForLoopsExitIsValid) {
-    // exit inside a nested for-range loop should not error.
     auto r = analyze(R"(
 for i in 1..3 loop
     for j in 1..3 loop
@@ -154,7 +139,6 @@ end
 }
 
 TEST(SemaValid, FunctionWithReturn) {
-    // return inside a function body is valid.
     auto r = analyze(R"(
 var f := func(n) is
     return n * 2
@@ -165,7 +149,6 @@ print f(5)
 }
 
 TEST(SemaValid, FunctionParamsInScope) {
-    // Parameters are accessible throughout the function body.
     auto r = analyze(R"(
 var add := func(a, b) is
     var result := a + b
@@ -177,7 +160,6 @@ print add(3, 4)
 }
 
 TEST(SemaValid, FunctionExpressionBody) {
-    // func(x) => x + 1 — arrow-body function, no explicit return.
     auto r = analyze(R"(
 var f := func(x) => x + 1
 print f(10)
@@ -186,7 +168,6 @@ print f(10)
 }
 
 TEST(SemaValid, FunctionNoParams) {
-    // func => 42  — zero-parameter function.
     auto r = analyze(R"(
 var f := func => 42
 print f()
@@ -195,7 +176,6 @@ print f()
 }
 
 TEST(SemaValid, NestedFunctionsInnerReturn) {
-    // A return inside an inner function is valid (it only returns the inner func).
     auto r = analyze(R"(
 var outer := func(x) is
     var inner := func(y) is
@@ -209,7 +189,6 @@ print outer(5)
 }
 
 TEST(SemaValid, ReturnWithoutValue) {
-    // return with no expression is valid inside a function.
     auto r = analyze(R"(
 var f := func is
     var x := 1
@@ -221,7 +200,6 @@ f()
 }
 
 TEST(SemaValid, IsTypeCheck) {
-    // `x is int` — valid type-check expression.
     auto r = analyze(R"(
 var x := 42
 print x is int
@@ -230,7 +208,6 @@ print x is int
 }
 
 TEST(SemaValid, IsTypeCheckAllTypes) {
-    // All eight TypeIndicators used in is-expressions are valid.
     auto r = analyze(R"(
 var v := 0
 print v is int
@@ -246,7 +223,6 @@ print v is func
 }
 
 TEST(SemaValid, IfThenElse) {
-    // Standard if/then/else/end — variables inside bodies are locally scoped.
     auto r = analyze(R"(
 var x := 10
 if x > 5 then
@@ -261,7 +237,6 @@ end
 }
 
 TEST(SemaValid, AssignmentToArrayElement) {
-    // Assigning to arr[k] is valid as long as arr is declared.
     auto r = analyze(R"(
 var t := []
 t[10] := 25
@@ -271,7 +246,6 @@ print t[10]
 }
 
 TEST(SemaValid, TupleFieldAccess) {
-    // Accessing a named tuple field via dot notation.
     auto r = analyze(R"(
 var t := {a := 1, b := 2}
 print t.a
@@ -281,7 +255,6 @@ print t.b
 }
 
 TEST(SemaValid, TupleIntAccess) {
-    // Accessing a tuple element by integer index.
     auto r = analyze(R"(
 var t := {a := 1, b := 2}
 print t.1
@@ -291,8 +264,6 @@ print t.2
 }
 
 TEST(SemaValid, RecursiveFunction) {
-    // A function that references itself by name — the var is declared before
-    // the function body executes, so the name must be in scope.
     auto r = analyze(R"(
 var fact := func(n) is
     if n <= 1 then
@@ -307,7 +278,6 @@ print fact(5)
 }
 
 TEST(SemaValid, PrintMultipleExpressions) {
-    // print e1, e2, e3 — all sub-expressions are validated.
     auto r = analyze(R"(
 var a := 1
 var b := 2
@@ -318,9 +288,6 @@ print a, b, c
 }
 
 TEST(SemaValid, VariableDeclaredInLoopBodyNotLeaking) {
-    // var declared inside a loop body is not accessible after the loop —
-    // but no error is expected on the loop itself; this tests that the
-    // inner declaration doesn't pollute the outer scope.
     auto r = analyze(R"(
 for i in 1..3 loop
     var tmp := i * 2
@@ -330,10 +297,7 @@ end
     EXPECT_TRUE(r.ok);
 }
 
-// ── Undeclared variable errors ────────────────────────────────────────────────
-
 TEST(SemaError, UndeclaredVariableInPrint) {
-    // Referencing a name that was never declared.
     auto r = analyze("print z");
     EXPECT_FALSE(r.ok);
     EXPECT_TRUE(has_error(r, "undeclared"));
@@ -355,7 +319,6 @@ TEST(SemaError, UndeclaredVariableInAssignRhs) {
 }
 
 TEST(SemaError, UndeclaredInInitializer) {
-    // var x := x  — x is not yet in scope at the point of its own initializer.
     auto r = analyze("var x := x");
     EXPECT_FALSE(r.ok);
     EXPECT_TRUE(has_error(r, "undeclared"));
@@ -363,7 +326,6 @@ TEST(SemaError, UndeclaredInInitializer) {
 }
 
 TEST(SemaError, ForRangeIteratorNotVisibleAfterLoop) {
-    // Iterator `i` is scoped to the loop; using it afterwards is an error.
     auto r = analyze(R"(
 for i in 1..5 loop
     print i
@@ -376,7 +338,7 @@ print i
 }
 
 TEST(SemaError, ForIterIteratorNotVisibleAfterLoop) {
-    // Same rule for for-iter loops.
+
     auto r = analyze(R"(
 var arr := [1, 2, 3]
 for item in arr loop
@@ -390,7 +352,6 @@ print item
 }
 
 TEST(SemaError, VariableDeclaredInsideBodyNotVisibleOutside) {
-    // var declared inside an if-body is not visible in the outer scope.
     auto r = analyze(R"(
 var x := 1
 if x = 1 then
@@ -404,7 +365,7 @@ print inner
 }
 
 TEST(SemaError, FunctionParamNotVisibleOutsideFunction) {
-    // A function parameter is only in scope inside the function body.
+
     auto r = analyze(R"(
 var f := func(x) => x + 1
 print x
@@ -415,7 +376,6 @@ print x
 }
 
 TEST(SemaError, FunctionLocalVarNotVisibleOutside) {
-    // Locals declared inside a function body are not visible outside.
     auto r = analyze(R"(
 var f := func is
     var secret := 42
@@ -427,8 +387,6 @@ print secret
     EXPECT_TRUE(has_error(r, "'secret'"));
 }
 
-// ── Duplicate declaration errors ──────────────────────────────────────────────
-
 TEST(SemaError, DuplicateDeclInGlobalScope) {
     auto r = analyze("var x := 1\nvar x := 2");
     EXPECT_FALSE(r.ok);
@@ -437,7 +395,6 @@ TEST(SemaError, DuplicateDeclInGlobalScope) {
 }
 
 TEST(SemaError, DuplicateDeclInFunctionScope) {
-    // Two vars with the same name inside the same function body.
     auto r = analyze(R"(
 var f := func is
     var y := 1
@@ -450,7 +407,6 @@ end
 }
 
 TEST(SemaError, DuplicateDeclInLoopBody) {
-    // Two vars with the same name inside the same loop body.
     auto r = analyze(R"(
 loop
     var z := 1
@@ -464,7 +420,6 @@ end
 }
 
 TEST(SemaError, DuplicateFunctionParams) {
-    // Two parameters with the same name in one function.
     auto r = analyze(R"(
 var f := func(a, a) => a + 1
 )");
@@ -473,14 +428,11 @@ var f := func(a, a) => a + 1
     EXPECT_TRUE(has_error(r, "'a'"));
 }
 
-// Redeclaring in same var statement counts as duplicate in same scope.
 TEST(SemaError, DuplicateDeclInSameVarStatement) {
     auto r = analyze("var n := 1, n := 2");
     EXPECT_FALSE(r.ok);
     EXPECT_TRUE(has_error(r, "already declared"));
 }
-
-// ── exit / return context errors ──────────────────────────────────────────────
 
 TEST(SemaError, ExitOutsideAnyLoop) {
     auto r = analyze("exit");
@@ -489,7 +441,6 @@ TEST(SemaError, ExitOutsideAnyLoop) {
 }
 
 TEST(SemaError, ExitInFunctionOutsideLoop) {
-    // A function body is not a loop — exit inside it without a loop is invalid.
     auto r = analyze(R"(
 var f := func is
     exit
@@ -500,7 +451,6 @@ end
 }
 
 TEST(SemaError, ExitInsideIfOutsideLoop) {
-    // if-body doesn't make it a loop context.
     auto r = analyze(R"(
 var x := 1
 if x = 1 then
@@ -524,7 +474,6 @@ TEST(SemaError, ReturnAtTopLevelNoValue) {
 }
 
 TEST(SemaError, ReturnInsideLoopNotInsideFunction) {
-    // A loop body is not a function context.
     auto r = analyze(R"(
 loop
     return 1
@@ -534,10 +483,7 @@ end
     EXPECT_TRUE(has_error(r, "'return' used outside of a function"));
 }
 
-// ── Valid exit / return inside nested constructs ───────────────────────────────
-
 TEST(SemaValid, ExitInsideWhileInsideIf) {
-    // The `exit` is ultimately inside a while loop, so it is valid.
     auto r = analyze(R"(
 var x := 0
 while x < 10 loop
@@ -551,7 +497,6 @@ end
 }
 
 TEST(SemaValid, ReturnInsideNestedIfInsideFunction) {
-    // return is valid from any depth inside a function.
     auto r = analyze(R"(
 var f := func(x) is
     if x > 0 then
@@ -568,7 +513,6 @@ end
 }
 
 TEST(SemaValid, ExitInsideLoopInsideFunction) {
-    // A loop inside a function — exit is valid.
     auto r = analyze(R"(
 var f := func is
     loop
@@ -579,10 +523,7 @@ end
     EXPECT_TRUE(r.ok);
 }
 
-// ── Multiple errors collected ─────────────────────────────────────────────────
-
 TEST(SemaError, MultipleErrorsReported) {
-    // Both undeclared variable and exit-outside-loop should be reported.
     auto r = analyze(R"(
 print undeclared_var
 exit
@@ -594,16 +535,12 @@ exit
 }
 
 TEST(SemaError, MultipleUndeclaredSymbols) {
-    // Each undeclared reference should produce its own error.
     auto r = analyze("print a, b, c");
     EXPECT_FALSE(r.ok);
     EXPECT_EQ(r.errors.size(), 3u);
 }
 
-// ── Error location accuracy ────────────────────────────────────────────────────
-
 TEST(SemaError, ErrorLineIsCorrect) {
-    // The undeclared error should point at line 2 (1-based).
     auto r = analyze("var x := 1\nprint z");
     ASSERT_FALSE(r.ok);
     ASSERT_EQ(r.errors.size(), 1u);
@@ -614,9 +551,7 @@ TEST(SemaError, DuplicateDeclLineIsCorrect) {
     auto r = analyze("var x := 1\nvar x := 2");
     ASSERT_FALSE(r.ok);
     ASSERT_EQ(r.errors.size(), 1u);
-    // Error is reported at the second declaration (line 2).
     EXPECT_EQ(r.errors[0].line, 2);
-    // And message mentions original declaration line 1.
     EXPECT_TRUE(has_error(r, "line 1"));
 }
 

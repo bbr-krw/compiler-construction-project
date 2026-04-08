@@ -1,6 +1,5 @@
 #pragma once
 
-// Forward declarations of all concrete node types
 struct ProgramNode;
 struct BodyNode;
 struct VarDeclNode;
@@ -34,8 +33,6 @@ struct TupleElemNode;
 struct ParamListNode;
 struct FuncLitNode;
 struct TypeNode;
-
-// ── Abstract visitor interface ────────────────────────────────────────────────
 
 struct IASTVisitor {
     virtual ~IASTVisitor() = default;
@@ -74,12 +71,6 @@ struct IASTVisitor {
     virtual void visit(const FuncLitNode&)   = 0;
     virtual void visit(const TypeNode&)      = 0;
 };
-
-// ── CRTP base with default no-op implementations ──────────────────────────────
-//
-// Concrete visitors inherit from ASTVisitorBase<Derived> and override only the
-// visit() overloads they care about.  The template parameter Derived enables
-// CRTP dispatch in subclasses that need it (e.g. delegating traversal).
 
 template <typename Derived> struct ASTVisitorBase : IASTVisitor {
     void visit(const ProgramNode&) override {}

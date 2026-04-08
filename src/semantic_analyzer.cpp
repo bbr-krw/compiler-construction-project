@@ -4,19 +4,15 @@
 
 #include <format>
 
-// ── Public API ────────────────────────────────────────────────────────────────
-
 void SemanticAnalyzer::analyze(const ASTNode& root) {
     errors_.clear();
     scopes_.clear();
     loop_depth_ = 0;
     func_depth_ = 0;
-    push_scope(); // global scope
+    push_scope();
     root.accept(*this);
     pop_scope();
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 void SemanticAnalyzer::push_scope() {
     scopes_.emplace_back();
@@ -56,8 +52,6 @@ void SemanticAnalyzer::accept(const ASTNode* n) {
         n->accept(*this);
 }
 
-// ── Statements / structure ────────────────────────────────────────────────────
-
 void SemanticAnalyzer::visit(const ProgramNode& n) {
     for (const auto& s : n.stmts)
         accept(s.get());
@@ -76,13 +70,7 @@ void SemanticAnalyzer::visit(const VarDeclNode& n) {
 }
 
 void SemanticAnalyzer::visit(const VarDefNode& n) {
-    // For function-literal initialisers, declare the name *before* visiting the
-    // body so that recursive self-references (e.g. var fact := func(n) is
-    // ... fact(n-1) ... end) are valid.  The function body is executed at call
-    // time, so the variable is already in scope when the body actually runs.
-    //
-    // For all other initialisers, evaluate first so that `var x := x` correctly
-    // reports x as undeclared.
+
     const bool is_func_init = n.init && dynamic_cast<const FuncLitNode*>(n.init.get()) != nullptr;
     if (is_func_init)
         declare(n.varname, n.line, n.col);
@@ -106,7 +94,6 @@ void SemanticAnalyzer::visit(const IfNode& n) {
 
 void SemanticAnalyzer::visit(const IfShortNode& n) {
     accept(n.cond.get());
-    // The single statement shares the enclosing scope (no new Body wrapper).
     accept(n.stmt.get());
 }
 
@@ -118,11 +105,9 @@ void SemanticAnalyzer::visit(const WhileNode& n) {
 }
 
 void SemanticAnalyzer::visit(const ForRangeNode& n) {
-    // Evaluate bounds in the outer scope.
     accept(n.from.get());
     accept(n.to.get());
     ++loop_depth_;
-    // Iterator variable is scoped to the loop body.
     push_scope();
     if (!n.iter.empty())
         declare(n.iter, n.line, n.col);
@@ -132,7 +117,6 @@ void SemanticAnalyzer::visit(const ForRangeNode& n) {
 }
 
 void SemanticAnalyzer::visit(const ForIterNode& n) {
-    // Evaluate the iterable in the outer scope.
     accept(n.iterable.get());
     ++loop_depth_;
     push_scope();
@@ -166,8 +150,6 @@ void SemanticAnalyzer::visit(const PrintNode& n) {
         accept(e.get());
 }
 
-// ── Expressions ───────────────────────────────────────────────────────────────
-
 void SemanticAnalyzer::visit(const BinOpNode& n) {
     accept(n.left.get());
     accept(n.right.get());
@@ -179,7 +161,6 @@ void SemanticAnalyzer::visit(const UnaryOpNode& n) {
 
 void SemanticAnalyzer::visit(const IsNode& n) {
     accept(n.operand.get());
-    // n.type_node is a TypeNode — always structurally valid, no check needed.
 }
 
 void SemanticAnalyzer::visit(const IdentNode& n) {
@@ -205,8 +186,6 @@ void SemanticAnalyzer::visit(const DotIntNode& n) {
     accept(n.base.get());
 }
 
-// ── Literals ──────────────────────────────────────────────────────────────────
-
 void SemanticAnalyzer::visit(const ArrayLitNode& n) {
     for (const auto& e : n.elems)
         accept(e.get());
@@ -221,11 +200,7 @@ void SemanticAnalyzer::visit(const TupleElemNode& n) {
     accept(n.expr.get());
 }
 
-// ── Function literal ──────────────────────────────────────────────────────────
-
 void SemanticAnalyzer::visit(const ParamListNode& n) {
-    // Parameters are declared by visit(FuncLitNode) before we recurse into body.
-    // This overload is called from visit(FuncLitNode) to register all param names.
     for (const auto& p : n.params) {
         const auto* ident = static_cast<const IdentNode*>(p.get());
         declare(ident->ident_name, ident->line, ident->col);
