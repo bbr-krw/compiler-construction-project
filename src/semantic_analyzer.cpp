@@ -27,9 +27,9 @@ void SemanticAnalyzer::declare(const std::string& name, Location loc) {
     auto it     = scope.find(name);
     if (it != scope.end()) {
         error(loc, std::format("'{}' already declared in this scope (previously at line {})", name,
-                               it->second));
+                               it->second.line));
     } else {
-        scope[name] = loc.line;
+        scope[name] = loc;
     }
 }
 

@@ -9,13 +9,11 @@
 #include <string_view>
 #include <vector>
 
-// ── Source location ───────────────────────────────────────────────────────────
 struct Location {
     int line{0};
     int col{0};
 };
 
-// ── Base node ─────────────────────────────────────────────────────────────────
 struct ASTNode {
     Location loc{};
 
@@ -32,7 +30,6 @@ struct ASTNode {
     void print(int indent, std::ostream& os) const;
     void print(int indent = 0) const;
 
-    // Factory helpers
     static std::unique_ptr<ASTNode> make_int(long long v, Location loc = {});
     static std::unique_ptr<ASTNode> make_real(double v, Location loc = {});
     static std::unique_ptr<ASTNode> make_str(std::string s, Location loc = {});
@@ -40,8 +37,6 @@ struct ASTNode {
     static std::unique_ptr<ASTNode> make_bool(bool v, Location loc = {});
     static std::unique_ptr<ASTNode> make_none(Location loc = {});
 };
-
-// ── Statements / structure ────────────────────────────────────────────────────
 
 struct ProgramNode : ASTNode {
     std::vector<std::unique_ptr<ASTNode>> stmts;
@@ -58,7 +53,7 @@ struct BodyNode : ASTNode {
 };
 
 struct VarDeclNode : ASTNode {
-    std::vector<std::unique_ptr<ASTNode>> defs; // VarDefNode children
+    std::vector<std::unique_ptr<ASTNode>> defs;
     explicit VarDeclNode(Location loc = {}) : ASTNode{loc} {}
     std::string_view kind_name() const noexcept override { return "VarDecl"; }
     void accept(IASTVisitor& v) const override { v.visit(*this); }
@@ -66,7 +61,7 @@ struct VarDeclNode : ASTNode {
 
 struct VarDefNode : ASTNode {
     std::string varname;
-    std::unique_ptr<ASTNode> init; // optional initialiser expression
+    std::unique_ptr<ASTNode> init;
     explicit VarDefNode(Location loc = {}) : ASTNode{loc} {}
     std::string_view kind_name() const noexcept override { return "VarDef"; }
     void accept(IASTVisitor& v) const override { v.visit(*this); }
@@ -83,7 +78,7 @@ struct AssignNode : ASTNode {
 struct IfNode : ASTNode {
     std::unique_ptr<ASTNode> cond;
     std::unique_ptr<ASTNode> then_body;
-    std::unique_ptr<ASTNode> else_body; // optional
+    std::unique_ptr<ASTNode> else_body;
     explicit IfNode(Location loc = {}) : ASTNode{loc} {}
     std::string_view kind_name() const noexcept override { return "If"; }
     void accept(IASTVisitor& v) const override { v.visit(*this); }
@@ -106,7 +101,7 @@ struct WhileNode : ASTNode {
 };
 
 struct ForRangeNode : ASTNode {
-    std::string iter; // iterator variable name (may be empty)
+    std::string iter;
     std::unique_ptr<ASTNode> from;
     std::unique_ptr<ASTNode> to;
     std::unique_ptr<ASTNode> body;
@@ -116,7 +111,7 @@ struct ForRangeNode : ASTNode {
 };
 
 struct ForIterNode : ASTNode {
-    std::string iter; // iterator variable name (may be empty)
+    std::string iter;
     std::unique_ptr<ASTNode> iterable;
     std::unique_ptr<ASTNode> body;
     explicit ForIterNode(Location loc = {}) : ASTNode{loc} {}
@@ -138,7 +133,7 @@ struct ExitNode : ASTNode {
 };
 
 struct ReturnNode : ASTNode {
-    std::unique_ptr<ASTNode> value; // optional return expression
+    std::unique_ptr<ASTNode> value;
     explicit ReturnNode(Location loc = {}) : ASTNode{loc} {}
     std::string_view kind_name() const noexcept override { return "Return"; }
     void accept(IASTVisitor& v) const override { v.visit(*this); }
@@ -151,8 +146,6 @@ struct PrintNode : ASTNode {
     void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
-// ── Binary operators ──────────────────────────────────────────────────────────
-
 struct BinOpNode : ASTNode {
     enum class Op { OR, AND, XOR, LT, LE, GT, GE, EQ, NEQ, ADD, SUB, MUL, DIV };
     Op op;
@@ -162,8 +155,6 @@ struct BinOpNode : ASTNode {
     std::string_view kind_name() const noexcept override;
     void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
-
-// ── Unary operators ───────────────────────────────────────────────────────────
 
 struct UnaryOpNode : ASTNode {
     enum class Op { UPLUS, UMINUS, NOT };
@@ -182,11 +173,9 @@ struct IsNode : ASTNode {
     void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
-// ── Postfix / access ──────────────────────────────────────────────────────────
-
 struct IdentNode : ASTNode {
     std::string ident_name;
-    mutable int resolved_depth = -1; // set by SemanticAnalyzer; -1 = not yet resolved
+    mutable int resolved_depth = -1;
     explicit IdentNode(std::string name, Location loc = {})
         : ASTNode{loc},
           ident_name{std::move(name)} {}
@@ -225,8 +214,6 @@ struct DotIntNode : ASTNode {
     std::string_view kind_name() const noexcept override { return "DotInt"; }
     void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
-
-// ── Literals ──────────────────────────────────────────────────────────────────
 
 struct IntLitNode : ASTNode {
     long long value;
@@ -270,14 +257,14 @@ struct ArrayLitNode : ASTNode {
 };
 
 struct TupleLitNode : ASTNode {
-    std::vector<std::unique_ptr<ASTNode>> elems; // TupleElemNode children
+    std::vector<std::unique_ptr<ASTNode>> elems;
     explicit TupleLitNode(Location loc = {}) : ASTNode{loc} {}
     std::string_view kind_name() const noexcept override { return "TupleLit"; }
     void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct TupleElemNode : ASTNode {
-    std::string elem_name; // element name (empty for unnamed)
+    std::string elem_name;
     std::unique_ptr<ASTNode> expr;
     explicit TupleElemNode(Location loc = {}) : ASTNode{loc} {}
     std::string_view kind_name() const noexcept override { return "TupleElem"; }
@@ -285,21 +272,19 @@ struct TupleElemNode : ASTNode {
 };
 
 struct ParamListNode : ASTNode {
-    std::vector<std::unique_ptr<ASTNode>> params; // IdentNode children
+    std::vector<std::unique_ptr<ASTNode>> params;
     explicit ParamListNode(Location loc = {}) : ASTNode{loc} {}
     std::string_view kind_name() const noexcept override { return "ParamList"; }
     void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
 struct FuncLitNode : ASTNode {
-    std::unique_ptr<ASTNode> params; // ParamListNode
-    std::unique_ptr<ASTNode> body;   // BodyNode
+    std::unique_ptr<ASTNode> params;
+    std::unique_ptr<ASTNode> body;
     explicit FuncLitNode(Location loc = {}) : ASTNode{loc} {}
     std::string_view kind_name() const noexcept override { return "FuncLit"; }
     void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
-
-// ── Type indicators ───────────────────────────────────────────────────────────
 
 struct TypeNode : ASTNode {
     enum class Type { INT, REAL, BOOL, STRING, NONE, ARRAY, TUPLE, FUNC };

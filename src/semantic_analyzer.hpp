@@ -48,7 +48,7 @@ struct SemanticAnalyzer : ASTVisitorBase<SemanticAnalyzer> {
     void visit(const FuncLitNode&) override;
 
 private:
-    using Scope = std::unordered_map<std::string, int /*decl line*/>;
+    using Scope = std::unordered_map<std::string, Location>;
 
     std::vector<Scope> scopes_;
     int loop_depth_{0};
