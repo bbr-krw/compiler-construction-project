@@ -194,3 +194,17 @@ target_link_libraries(interp_suite_tests PRIVATE GTest::gtest GTest::gtest_main 
 target_include_directories(interp_suite_tests PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(interp_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
 add_test(NAME InterpSuiteTests COMMAND interp_suite_tests)
+
+# ── Bytecode VM ─────────────────────────────────────────────────────────────────
+# New sources added to lexer_lib so the VM can share the same lexer/parser/AST.
+target_sources(lexer_lib PRIVATE
+    src/bytecode.cpp
+    src/bytecode_compiler.cpp
+    src/bytecode_io.cpp
+    src/vm.cpp
+)
+
+add_executable(dvm src/dvm.cpp)
+target_link_libraries(dvm PRIVATE lexer_lib)
+target_include_directories(dvm PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_options(dvm PRIVATE -Wall -Wextra)
