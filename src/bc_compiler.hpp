@@ -1,24 +1,47 @@
 #pragma once
 
-#include "ast.hpp"
-#include "ast_visitor.hpp"
-
-#include <ostream>
-#include <string>
-#include <vector>
 #include "runtime.hpp"
+#include "bytecode.hpp"
 
-// ── Interpreter ───────────────────────────────────────────────────────────────
+class BcCompiler : public ASTVisitorBase<BcCompiler> {
 
-class Interpreter : public ASTVisitorBase<Interpreter> {
 public:
-    explicit Interpreter(std::ostream& out);
-    void run(const ASTNode& root);
+    explicit BcCompiler();
 
-    void visit(const ProgramNode&) override;
-    void visit(const BodyNode&) override;
-    void visit(const VarDeclNode&) override;
-    void visit(const VarDefNode&) override;
+    BcFile compile(const ASTNode& root) {
+        root.accept(*this);
+        return bc_file;
+    }
+
+    void visit(const ProgramNode& n) override {
+        for (const auto& s : n.stmts)
+            s->accept(*this);
+    }
+
+    void visit(const BodyNode&) override {
+        throw std::runtime_error("unimplemented");
+    }
+
+    void visit(const VarDeclNode& n) override {
+        for (const auto& d : n.defs)
+            d->accept(*this);
+    }
+
+    void visit(const VarDefNode& n) override {
+        // const bool is_func_init = n.init && dynamic_cast<const FuncLitNode*>(n.init.get()) != nullptr;
+        // if (is_func_init)
+        //     declare(n.varname); // initially none
+        // DValue v = n.init ? eval(*n.init) : DValue{};
+        // if (is_func_init)
+        //     lookup_ref(n.varname) = std::move(v);
+        // else
+        //     declare(n.varname, std::move(v));
+    }
+
+    void visit(const PrintNode& n) override {
+        // TODO
+    }
+
     void visit(const AssignNode&) override;
     void visit(const IfNode&) override;
     void visit(const IfShortNode&) override;
@@ -28,7 +51,6 @@ public:
     void visit(const LoopInfNode&) override;
     void visit(const ExitNode&) override;
     void visit(const ReturnNode&) override;
-    void visit(const PrintNode&) override;
     void visit(const BinOpNode&) override;
     void visit(const UnaryOpNode&) override;
     void visit(const IsNode&) override;
@@ -49,17 +71,6 @@ public:
     void visit(const TypeNode&) override;
 
 private:
-    std::ostream& out_;
-    Env env_;
-    DValue val_; // expression result register
+    BcFile bc_file;
 
-    void push_frame();
-    void pop_frame();
-    Env capture_env() const { return env_; }
-    void declare(const std::string& name, DValue v = {});
-    DValue& lookup_ref(const std::string& name);
-
-    DValue eval(const ASTNode& node);
-    void assign_lvalue(const ASTNode& lhs, DValue rhs);
-    DValue call_func(const DValue& fv, std::vector<DValue> args);
 };
