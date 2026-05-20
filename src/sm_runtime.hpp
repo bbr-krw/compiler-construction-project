@@ -55,7 +55,7 @@ DValue make_function();
 
 struct Frame {
     const FunctionScheme* scheme;
-    void* return_addr;
+    size_t return_index;
     std::vector<DValue> captured;
     std::vector<DValue> args;
     std::vector<DValue> locals;
