@@ -7,11 +7,14 @@
 #include <string>
 #include <assert.h>
 
+namespace sm {
+
 enum LocTypes : uint16_t {
   LOCAL, // #args + 1 ... inf
   ARGUMENT, // 0 ... #args
   CAPTURED, // #-1 ... -inf? // TODO[atrubnikov] Not supported
 };
+
 struct Location {
   LocTypes type;
   int16_t index;
@@ -145,10 +148,11 @@ static Bytecode bc_0op(BytecodeSignatures s) {
   return with_bc_signature(s, with_bc_signature(s, 0));
 }
 
-class BcFile {
+struct BcFile {
   std::vector<std::string> strings;
   std::vector<TupleScheme> tuples;
   std::vector<FunctionScheme> functions;
+  size_t main_function_index;
 
   size_t addString(const std::string& s) {
     strings.push_back(s);
@@ -170,3 +174,5 @@ class BcFile {
   DEF(10, !=)\
   DEF(11, &&)\
   DEF(12, ||)
+
+} // namespace sm
