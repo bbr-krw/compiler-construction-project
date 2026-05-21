@@ -195,8 +195,14 @@ endif()
 # target_compile_definitions(interp_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
 # add_test(NAME InterpSuiteTests COMMAND interp_suite_tests)
 
-# ── Bytecode Compilator ────────────────────────────────────────────────────────
+# ── Bytecode Compiler ────────────────────────────────────────────────────────────
 add_executable(dbc src/dbc.cpp src/bytecode.cpp)
 target_link_libraries(dbc PRIVATE lexer_lib)
 target_include_directories(dbc PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_options(dbc PRIVATE -Wall -Wextra)
+
+# ── SM interpreter  ──────────────────────────────────────────────────────────────
+add_executable(dbci src/dbci.cpp src/sm_interpreter.cpp src/sm_runtime.cpp src/bytecode.cpp)
+target_link_libraries(dbci PRIVATE lexer_lib)
+target_include_directories(dbci PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_options(dbci PRIVATE -Wall -Wextra)

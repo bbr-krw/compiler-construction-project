@@ -10,6 +10,7 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
+#include <iostream>
 
 namespace sm {
 
@@ -437,6 +438,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         case BC_PRINT: {
             runtime->print(frame.pop());
+            std::cout << "\n";
             break;
         }
 

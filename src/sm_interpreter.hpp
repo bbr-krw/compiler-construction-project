@@ -4,6 +4,6 @@
 
 namespace sm {
 
-void interprete(Runtime* runtime, void* entrypoint);
+void interprete(Runtime* runtime, const BcFile& bcFile);
 
 } // namespace sm
