@@ -331,6 +331,13 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             break;
         }
 
+        case BC_STD: {
+            DValue* src = frame.pop();
+            DValue* dest = frame.pop();
+            *dest = *src;
+            break;
+        }
+
         case BC_STOP: {
             bc_index = frame.scheme->code.size();
             jumped = true;
