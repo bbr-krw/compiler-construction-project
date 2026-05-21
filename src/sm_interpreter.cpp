@@ -14,12 +14,12 @@
 
 namespace sm {
 
-DValue concat(DValue first, DValue second) {
-    if (first.type != second.type) {
+DValue* concat(DValue* first, DValue* second) {
+    if (first->type != second->type) {
         throw std::runtime_error("cannot concat different types");
     }
 
-    switch (first.type) {
+    switch (first->type) {
     case Type::None:
     case Type::Int:
     case Type::Real:
@@ -28,8 +28,8 @@ DValue concat(DValue first, DValue second) {
         throw std::runtime_error("unsupported type for concatenation");
     
     case Type::String: {
-        DString* first_str = reinterpret_cast<DString*>(first.value);
-        DString* second_str = reinterpret_cast<DString*>(second.value);
+        DString* first_str = reinterpret_cast<DString*>(first->value);
+        DString* second_str = reinterpret_cast<DString*>(second->value);
 
         std::string result = first_str->data;
         result += second_str->data;
@@ -38,8 +38,8 @@ DValue concat(DValue first, DValue second) {
     }
 
     case Type::Array: {
-        DArray* first_arr = reinterpret_cast<DArray*>(first.value);
-        DArray* second_arr = reinterpret_cast<DArray*>(second.value);
+        DArray* first_arr = reinterpret_cast<DArray*>(first->value);
+        DArray* second_arr = reinterpret_cast<DArray*>(second->value);
 
         DArray array;
         for (const auto& [key, value] : *first_arr) {
@@ -53,11 +53,11 @@ DValue concat(DValue first, DValue second) {
     }
 
     case Type::Tuple: {
-        DTuple* first_tuple = reinterpret_cast<DTuple*>(first.value);
-        DTuple* second_tuple = reinterpret_cast<DTuple*>(second.value);
+        DTuple* first_tuple = reinterpret_cast<DTuple*>(first->value);
+        DTuple* second_tuple = reinterpret_cast<DTuple*>(second->value);
 
         std::vector<std::optional<std::string>> result_names = first_tuple->scheme->field_names;
-        std::vector<DValue> result_elements{first_tuple->elements, first_tuple->elements + first_tuple->scheme->field_names.size()};
+        std::vector<DValue*> result_elements{first_tuple->elements, first_tuple->elements + first_tuple->scheme->field_names.size()};
 
         for (size_t i = 0; i < second_tuple->scheme->field_names.size(); i++) {
             const auto& name = second_tuple->scheme->field_names[i];
@@ -79,7 +79,7 @@ DValue concat(DValue first, DValue second) {
 }
 
 void interprete(Runtime* runtime, const BcFile& bcFile) {
-    DValue return_value;
+    DValue* return_value;
 
     Frame initial_frame;
     
@@ -88,7 +88,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
     initial_frame.return_index = std::numeric_limits<size_t>::max();
     initial_frame.captured = {};
     initial_frame.args = {};
-    initial_frame.locals.assign(main_scheme->locals_number, DValue{});
+    initial_frame.locals.assign(main_scheme->locals_number, new DValue{});
     initial_frame.stack = {};
 
     runtime->stack.push_back(initial_frame);
@@ -110,12 +110,12 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         switch (static_cast<BytecodeSignatures>(bc & 0xff)) {
         case BC_BINOP: {
-            DValue second = frame.pop();
-            DValue first = frame.pop();
+            DValue* second = frame.pop();
+            DValue* first = frame.pop();
 
             int32_t op = imm32(bc);
 
-            switch (first.type) {
+            switch (first->type) {
             case Type::None: {
                 throw std::runtime_error("binop with none");
             }
@@ -131,13 +131,13 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
             case Type::Int:
             case Type::Real: {
-                if (not (second.type == Type::Int || second.type == Type::Real)) {
+                if (not (second->type == Type::Int || second->type == Type::Real)) {
                     throw std::runtime_error("unsupported binop operand type");
                 }
 
-                if (first.type == Type::Real || second.type == Type::Real) {
-                    const auto first_arg = static_cast<double>(first.value);
-                    const auto second_arg = static_cast<double>(second.value);
+                if (first->type == Type::Real || second->type == Type::Real) {
+                    const auto first_arg = static_cast<double>(first->value);
+                    const auto second_arg = static_cast<double>(second->value);
 
                     switch (op) {
                     CASE_BINOP(0, +, make_real)
@@ -156,8 +156,8 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
                     }
                     }
                 } else {
-                    const auto first_arg = static_cast<int>(first.value);
-                    const auto second_arg = static_cast<int>(second.value);
+                    const auto first_arg = static_cast<int>(first->value);
+                    const auto second_arg = static_cast<int>(second->value);
 
                     switch (op) {
                     CASE_BINOP(0, +, make_int)
@@ -182,12 +182,12 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             }
 
             case Type::Bool: {
-                if (not (second.type == Type::Bool)) {
+                if (not (second->type == Type::Bool)) {
                     throw std::runtime_error("unsupported binop operand type");
                 }
 
-                const auto first_arg = static_cast<bool>(first.value);
-                const auto second_arg = static_cast<bool>(second.value);
+                const auto first_arg = static_cast<bool>(first->value);
+                const auto second_arg = static_cast<bool>(second->value);
 
                 switch (op) {
                 CASE_BINOP(11, &&, make_bool)
@@ -219,9 +219,9 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         }
 
         case BC_ISTYPE: {
-            DValue val = frame.pop();
+            DValue* val = frame.pop();
             Type expected_type = static_cast<Type>(imm32(bc));
-            frame.push(make_bool(val.type == expected_type));
+            frame.push(make_bool(val->type == expected_type));
             break;
         }
 
@@ -234,19 +234,19 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         case BC_LDA: {
             const auto array = frame[loc(bc)];
-            if (array.type != Type::Array) {
+            if (array->type != Type::Array) {
                 throw std::runtime_error("Array should be of array type");
             }
 
             const auto index = frame.pop();
-            if (index.type != Type::Int) {
+            if (index->type != Type::Int) {
                 throw std::runtime_error("Index should be an integer value");
             }
 
-            DArray* raw_array = reinterpret_cast<DArray*>(array.value);
-            size_t raw_index = static_cast<size_t>(index.value);
+            DArray* raw_array = reinterpret_cast<DArray*>(array->value);
+            size_t raw_index = static_cast<size_t>(index->value);
 
-            DValue value = raw_array->at(raw_index);
+            DValue* value = raw_array->at(raw_index);
             frame.push(value);
 
             break;
@@ -254,10 +254,10 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         case BC_LDT: {
             const auto tuple = frame[loc(bc)];
-            if (tuple.type != Type::Tuple) {
+            if (tuple->type != Type::Tuple) {
                 throw std::runtime_error("Tuple should be of tuple type");
             }
-            DTuple* raw_tuple = reinterpret_cast<DTuple*>(tuple.value);
+            DTuple* raw_tuple = reinterpret_cast<DTuple*>(tuple->value);
 
             const auto index = imm16_1(bc);
             if (index >= 0) {
@@ -287,17 +287,17 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         case BC_STA: {
             const auto array = frame[loc(bc)];
-            if (array.type != Type::Array) {
+            if (array->type != Type::Array) {
                 throw std::runtime_error("Array should be of array type");
             }
 
             const auto index = frame.pop();
-            if (index.type != Type::Int) {
+            if (index->type != Type::Int) {
                 throw std::runtime_error("Index should be an integer value");
             }
 
-            DArray* raw_array = reinterpret_cast<DArray*>(array.value);
-            size_t raw_index = static_cast<size_t>(index.value);
+            DArray* raw_array = reinterpret_cast<DArray*>(array->value);
+            size_t raw_index = static_cast<size_t>(index->value);
 
             raw_array->emplace(raw_index, frame.pop());
 
@@ -306,10 +306,10 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         case BC_STT: {
             const auto tuple = frame[loc(bc)];
-            if (tuple.type != Type::Tuple) {
+            if (tuple->type != Type::Tuple) {
                 throw std::runtime_error("Tuple should be of tuple type");
             }
-            DTuple* raw_tuple = reinterpret_cast<DTuple*>(tuple.value);
+            DTuple* raw_tuple = reinterpret_cast<DTuple*>(tuple->value);
 
             const auto index = imm16_1(bc);
             if (index >= 0) {
@@ -339,19 +339,19 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         }
 
         case BC_CONST: {
-            DValue value = make_int(imm32(bc));
+            DValue* value = make_int(imm32(bc));
             frame.push(value);
             break;
         }
 
         case BC_BOOL: {
-            DValue value = make_bool(imm32(bc));
+            DValue* value = make_bool(imm32(bc));
             frame.push(value);
             break;
         }
 
         case BC_REAL: {
-            DValue value = make_real(raw_to_float(imm32(bc)));
+            DValue* value = make_real(raw_to_float(imm32(bc)));
             frame.push(value);
             break;
         }
@@ -363,7 +363,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         case BC_STRING: {
             const size_t index = imm32(bc);
-            DValue string =  make_string(bcFile.strings[index]);
+            DValue* string =  make_string(bcFile.strings[index]);
             frame.push(string);
             break;
         }
@@ -371,7 +371,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         case BC_TUPLE: {
             const TupleScheme* scheme = &bcFile.tuples[imm32(bc)];
 
-            std::vector<DValue> elements;
+            std::vector<DValue*> elements;
             for (size_t i = 0; i < scheme->field_names.size(); i++) {
                 elements.push_back(frame.pop());
             }
@@ -406,18 +406,18 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         }
 
         case BC_DUP: {
-            DValue value = frame.pop();
+            DValue* value = frame.pop();
             frame.push(value);
             frame.push(value);
         }
 
         case BC_CJMP: {
-            DValue condition = frame.pop();
-            if (condition.type != Type::Bool) {
+            DValue* condition = frame.pop();
+            if (condition->type != Type::Bool) {
                 throw std::runtime_error("unexpected condition type");
             }
 
-            if (static_cast<bool>(condition.value)) {
+            if (static_cast<bool>(condition->value)) {
                 bc_index = imm32(bc);
                 jumped = true;
                 break;
@@ -427,12 +427,12 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         case BC_CLOSURE: {
             const FunctionScheme* scheme = &bcFile.functions[imm32(bc)];
             
-            std::vector<DValue> captured;
+            std::vector<DValue*> captured;
             for (size_t i = 0; i < scheme->capture.size(); i++) {
                 captured.push_back(frame[scheme->capture[i]]);
             }
             
-            DValue func = make_function(scheme, captured);
+            DValue* func = make_function(scheme, captured);
             frame.push(func);
             break;
         }
@@ -440,12 +440,12 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         case BC_CALLC: {
             const size_t args_count = imm32(bc);
 
-            DValue func = frame.pop();
-            if (func.type != Type::Func) {
+            DValue* func = frame.pop();
+            if (func->type != Type::Func) {
                 throw std::runtime_error("Function should be of function type");
             }
 
-            DFunc* raw_func = reinterpret_cast<DFunc*>(func.value);
+            DFunc* raw_func = reinterpret_cast<DFunc*>(func->value);
 
             Frame new_frame;
             new_frame.scheme = raw_func->scheme;

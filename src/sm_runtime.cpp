@@ -15,50 +15,50 @@ Segment<T>* make_segment(size_t n) {
     return reinterpret_cast<Segment<T>*>(ptr);
 }
 
-DValue make_int(int value) {
-    return DValue{.type = Type::Int, .mark = false, .value = static_cast<uint64_t>(value)};
+DValue* make_int(int value) {
+    return new DValue{.type = Type::Int, .mark = false, .value = static_cast<uint64_t>(value)};
 }
 
-DValue make_real(float value) {
-    return DValue{.type = Type::Real, .mark = false, .value = float_to_raw(value)};
+DValue* make_real(float value) {
+    return new DValue{.type = Type::Real, .mark = false, .value = float_to_raw(value)};
 }
 
-DValue make_bool(bool value) {
-    return DValue{.type = Type::Bool, .mark = false, .value = static_cast<uint64_t>(value)};
+DValue* make_bool(bool value) {
+    return new DValue{.type = Type::Bool, .mark = false, .value = static_cast<uint64_t>(value)};
 }
 
-DValue make_string(const std::string& string) {
+DValue* make_string(const std::string& string) {
     auto segment = make_segment<char>(1 + string.size());
     std::strcpy(segment->data, string.c_str());
-    return DValue{.type = Type::String, .mark = false, .value = reinterpret_cast<uint64_t>(segment)};
+    return new DValue{.type = Type::String, .mark = false, .value = reinterpret_cast<uint64_t>(segment)};
 }
 
-DValue make_array(const DArray& elements) {
+DValue* make_array(const DArray& elements) {
     auto array = new DArray{elements};
-    return DValue{.type = Type::Array, .mark = false, .value = reinterpret_cast<uint64_t>(array)};
+    return new DValue{.type = Type::Array, .mark = false, .value = reinterpret_cast<uint64_t>(array)};
 }
 
-DValue make_tuple(const TupleScheme* scheme, const std::vector<DValue>& elements) {
+DValue* make_tuple(const TupleScheme* scheme, const std::vector<DValue*>& elements) {
     size_t tuple_size = sizeof(DTuple) + elements.size() * sizeof(DValue);
     auto tuple = reinterpret_cast<DTuple*>(new uint8_t[tuple_size]);
     tuple->scheme = scheme;
     for (size_t i = 0; i < elements.size(); i++) {
         tuple->elements[i] = elements[i];
     }
-    return DValue{.type = Type::Tuple, .mark = false, .value = reinterpret_cast<uint64_t>(tuple)};
+    return new DValue{.type = Type::Tuple, .mark = false, .value = reinterpret_cast<uint64_t>(tuple)};
 }
 
-DValue make_function(const FunctionScheme* scheme, const std::vector<DValue>& captured) {
+DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue*>& captured) {
     size_t func_size = sizeof(DFunc) + captured.size() * sizeof(DValue);
     auto func = reinterpret_cast<DFunc*>(new uint8_t[func_size]);
     func->scheme = scheme;
     for (size_t i = 0; i < captured.size(); i++) {
         func->capture[i] = captured[i];
     }
-    return DValue{.type = Type::Func, .mark = false, .value = reinterpret_cast<uint64_t>(func)};
+    return new DValue{.type = Type::Func, .mark = false, .value = reinterpret_cast<uint64_t>(func)};
 }
 
-void Runtime::call(DFunc func, size_t return_index, std::vector<DValue> args, size_t locals) {
+void Runtime::call(DFunc func, size_t return_index, std::vector<DValue*> args, size_t locals) {
     Frame frame;
 
     frame.return_index = return_index;
@@ -69,17 +69,17 @@ void Runtime::call(DFunc func, size_t return_index, std::vector<DValue> args, si
     stack.push_back(frame);
 }
 
-void Frame::push(DValue value) {
+void Frame::push(DValue* value) {
     stack.push_back(value);
 }
 
-DValue Frame::pop() {
-    DValue value = stack.back();
+DValue* Frame::pop() {
+    DValue* value = stack.back();
     stack.pop_back();
     return value;
 }
 
-DValue& Frame::operator[](Location loc) {
+DValue*& Frame::operator[](Location loc) {
     switch (loc.type) {
     case LOCAL: {
         return locals[loc.index];
@@ -93,25 +93,25 @@ DValue& Frame::operator[](Location loc) {
     }
 }
 
-void Runtime::print(DValue value) {
-    switch (value.type) {
+void Runtime::print(DValue* value) {
+    switch (value->type) {
     case Type::None: {
         std::cout << "none";
         break;
     }
 
     case Type::Int: {
-        std::cout << static_cast<int>(value.value);
+        std::cout << static_cast<int>(value->value);
         break;
     }
 
     case Type::Real: {
-        std::cout << raw_to_float(value.value);
+        std::cout << raw_to_float(value->value);
         break;
     }
 
     case Type::Bool: {
-        if (value.value) {
+        if (value->value) {
             std::cout << "true";
         } else {
             std::cout << "false";
@@ -120,13 +120,13 @@ void Runtime::print(DValue value) {
     }
 
     case Type::String: {
-        auto string = reinterpret_cast<DString*>(value.value);
+        auto string = reinterpret_cast<DString*>(value->value);
         std::cout << string->data;
         break;
     }
 
     case Type::Array: {
-        auto array = reinterpret_cast<DArray*>(value.value);
+        auto array = reinterpret_cast<DArray*>(value->value);
         std::cout << "[";
         size_t i = 0;
         for (const auto& [key, value] : *array) {
@@ -142,7 +142,7 @@ void Runtime::print(DValue value) {
     }
 
     case Type::Tuple: {
-        auto tuple = reinterpret_cast<DTuple*>(value.value);
+        auto tuple = reinterpret_cast<DTuple*>(value->value);
         std::cout << "{";
         for (size_t i = 0; i < tuple->scheme->field_names.size(); i++) {
             if (i > 0) {
