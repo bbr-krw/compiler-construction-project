@@ -464,17 +464,17 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             break;
         }
 
-        case BC_CJMP: {
+        case BC_CJMPZ: {
             DValue* condition = frame.pop();
             if (condition->type != Type::Bool) {
                 throw std::runtime_error("unexpected condition type");
             }
 
-            if (static_cast<bool>(condition->value)) {
+            if (!static_cast<bool>(condition->value)) {
                 bc_index = imm32(bc);
                 jumped = true;
-                break;
             }
+            break;
         }
 
         case BC_CLOSURE: {

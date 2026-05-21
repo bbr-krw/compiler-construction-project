@@ -132,7 +132,7 @@ enum BytecodeSignatures : uint8_t {
   // ioperands: bytecode_index
   // stack operands: condition
   // jumps if condition truthy
-  BC_CJMP     = 80,
+  BC_CJMPZ    = 80,
 
   // ioperands: function_scheme_index
   // captures values and loads function object onto stack
@@ -261,7 +261,7 @@ struct BcFile {
 
         switch (sig(bc)) {
           case BC_BINOP: {
-            uint16_t op = imm16_1(bc);
+            uint32_t op = imm32(bc);
             const char* opname = "?";
             switch (op) {
 #define CASE(opc, sym) case opc: opname = #sym; break;
@@ -301,7 +301,7 @@ struct BcFile {
           case BC_RET:     os << "RET\n"; break;
           case BC_DROP:    os << "DROP\n"; break;
           case BC_DUP:     os << "DUP\n"; break;
-          case BC_CJMP:    os << "CJMP -> " << imm32(bc) << "\n"; break;
+          case BC_CJMPZ:    os << "CJMPZ -> " << imm32(bc) << "\n"; break;
           case BC_CLOSURE: os << "CLOSURE #" << imm32(bc) << "\n"; break;
           case BC_CALLC:   os << "CALLC args=" << imm32(bc) << "\n"; break;
           case BC_PRINT:   os << "PRINT\n"; break;

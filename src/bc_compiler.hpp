@@ -45,13 +45,20 @@ class BcCompiler : public ASTVisitorBase<BcCompiler> {
 private:
     sm::BcFile bc_file;
     std::vector<Function> telescope;
+    std::vector<Bytecode> code_buff;
 
     inline Function& curFun() {
         return telescope.back();
     }
 
     inline void emit(const Bytecode& bc) {
-        curFun().scheme.code.push_back(bc);
+        code_buff.push_back(bc);
+    }
+
+    inline void emit(const std::vector<Bytecode>& bcs) {
+        for (auto &bc : bcs) {
+            emit(bc);
+        }
     }
 
     inline void telescope_push(const std::vector<std::string>& args) {
@@ -59,6 +66,7 @@ private:
     }
 
     inline int telescope_pop() {
+        telescope.back().scheme.code = code_buff;
         bc_file.functions.push_back(telescope.back().scheme);
         telescope.pop_back();
         return bc_file.functions.size() - 1;
@@ -240,11 +248,6 @@ public:
         n.lhs->accept(*this);
         n.rhs->accept(*this);
         emit(bc_0op(BC_STD));
-        // if (n.init) {
-        //     n.init->accept(*this); // loads init value onto stack
-        //     emit(bc_1op(BC_ST, packLock(varLoc)));
-        // }
-
     }
 
     void visit(const NoneLitNode&) override {
@@ -310,8 +313,65 @@ public:
         emit(bc_1op(BC_LDT, index));
     }
 
-    // void visit(const IfNode&) override;
-    // void visit(const IfShortNode&) override;
+    std::vector<Bytecode> compileIntoCodeBuff(const ASTNode& n) {
+        std::vector<Bytecode> old_code_buff = std::move(code_buff);
+        std::vector<Bytecode> node_code;
+        code_buff = std::move(node_code);
+        n.accept(*this);
+        node_code = std::move(code_buff);
+        code_buff = std::move(old_code_buff);
+        return node_code;
+    }
+
+    void visit(const IfNode& n) override {
+        if (n.else_body) {
+            // if-then-else layout
+            // <load pred>
+            // CJMPZ L1
+            //      <then_code>
+            // JMP L2
+            // L1:
+            //      <else_code>
+            // L2:
+
+            std::vector<Bytecode> then_code = compileIntoCodeBuff(*n.then_body);
+            std::vector<Bytecode> else_code = compileIntoCodeBuff(*n.else_body);
+
+            n.cond->accept(*this); // loads boolean pred onto stack
+            int l1_bcindex = code_buff.size()
+                             + 1 // CJMPZ
+                             + then_code.size()
+                             + 1; // JMP
+            int l2_bcindex = l1_bcindex + else_code.size();
+            emit(bc_1op(BC_CJMPZ, l1_bcindex));
+            emit(then_code);
+            emit(bc_1op(BC_JMP, l2_bcindex));
+            emit(else_code);
+        } else {
+            compileIfThen(*n.cond, *n.then_body);
+        }
+    }
+
+    void visit(const IfShortNode& n) override {
+        compileIfThen(*n.cond, *n.stmt);
+    }
+
+    void compileIfThen(const ASTNode& pred, const ASTNode& then) {
+        // if-then-layout
+        // <load pred>
+        // CJMPZ L1
+        //      <then_code>
+        // L1:
+
+        std::vector<Bytecode> then_code = compileIntoCodeBuff(then);
+        pred.accept(*this); // loads boolean pred onto stack
+        int l1_bcindex = code_buff.size()
+                         + 1 // CJMPZ
+                         + then_code.size();
+        emit(bc_1op(BC_CJMPZ, l1_bcindex));
+        emit(then_code);
+    }
+
     // void visit(const WhileNode&) override;
     // void visit(const ForRangeNode&) override;
     // void visit(const ForIterNode&) override;
