@@ -205,12 +205,46 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             case Type::String:
             case Type::Array:
             case Type::Tuple: {
-                if (op != 0) {
+                switch (op) {
+                case 0:
+                    frame.push(concat(first, second));
+                    break;
+                case 9: {
+                    if (first->type != second->type) {
+                        frame.push(make_bool(false));
+                        break;
+                    }
+
+                    if (first->type == Type::String) {
+                        auto first_string = reinterpret_cast<DString*>(first->value);
+                        auto second_string = reinterpret_cast<DString*>(second->value);
+                        frame.push(make_bool(strcmp(first_string->data, second_string->data) == 0));
+                        break;
+                    }
+
+                    frame.push(make_bool(first == second));
+                    break;
+                }
+                case 10: {
+                    if (first->type != second->type) {
+                        frame.push(make_bool(true));
+                        break;
+                    }
+
+                    if (first->type == Type::String) {
+                        auto first_string = reinterpret_cast<DString*>(first->value);
+                        auto second_string = reinterpret_cast<DString*>(second->value);
+                        frame.push(make_bool(strcmp(first_string->data, second_string->data) != 0));
+                        break;
+                    }
+
+                    frame.push(make_bool(first != second));
+                    break;
+                }
+                }
+                if (op != 0 && op != 9 && op != 10) {
                     throw std::runtime_error("unsupported binop operand type");
                 }
-
-                frame.push(concat(first, second));
-                break;
             }
 
             }
