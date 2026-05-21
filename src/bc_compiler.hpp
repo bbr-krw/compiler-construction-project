@@ -185,6 +185,10 @@ public:
         emit(bc_1op(BC_REAL, *reinterpret_cast<uint32_t*>(&val)));
     }
 
+    void visit(const StrLitNode& n) override {
+        emit(bc_1op(BC_STRING, bc_file.addString(n.value)));
+    }
+
     // void visit(const AssignNode&) override;
     // void visit(const IfNode&) override;
     // void visit(const IfShortNode&) override;
@@ -199,7 +203,6 @@ public:
     // void visit(const IndexNode&) override;
     // void visit(const DotFieldNode&) override;
     // void visit(const DotIntNode&) override;
-    // void visit(const StrLitNode&) override;
     // void visit(const BoolLitNode&) override;
     // void visit(const NoneLitNode&) override;
     // void visit(const ArrayLitNode&) override;
