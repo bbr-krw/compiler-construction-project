@@ -38,6 +38,7 @@ struct DFunc {
     DValue* capture[0];
 };
 
+DValue* make_none();
 DValue* make_int(int value);
 DValue* make_real(float value);
 DValue* make_bool(bool value);

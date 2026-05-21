@@ -15,6 +15,10 @@ Segment<T>* make_segment(size_t n) {
     return reinterpret_cast<Segment<T>*>(ptr);
 }
 
+DValue* make_none() {
+    return new DValue{.type = Type::None, .mark = false, .value = 0};
+}
+
 DValue* make_int(int value) {
     return new DValue{.type = Type::Int, .mark = false, .value = static_cast<uint64_t>(value)};
 }

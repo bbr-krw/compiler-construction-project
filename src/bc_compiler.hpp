@@ -4,7 +4,11 @@
 #include "runtime.hpp"
 #include "bytecode.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 #include <map>
@@ -242,6 +246,70 @@ public:
         // }
 
     }
+
+    void visit(const NoneLitNode&) override {
+        emit(bc_0op(BC_NONE));
+    }
+
+    void visit(const ArrayLitNode& ar) override {
+        emit(bc_0op(BC_ARRAY));
+        for (size_t i = 0; i < ar.elems.size(); i++) {
+            emit(bc_0op(BC_DUP));
+            emit(bc_1op(BC_CONST, 1 + i));
+            ar.elems[i]->accept(*this);
+            emit(bc_0op(BC_STA));
+        }
+    }
+
+    void visit(const TupleLitNode& t) override {
+        TupleScheme scheme;
+        for (size_t i = 0; i < t.elems.size(); i++) {
+            const auto elem = reinterpret_cast<const TupleElemNode*>(t.elems[i].get());
+            if (elem->elem_name.empty()) {
+                scheme.field_names.push_back(std::nullopt);
+            } else {
+                scheme.field_names.push_back(elem->elem_name);
+            }
+        }
+
+        const size_t scheme_index = bc_file.tuples.size();
+        bc_file.tuples.push_back(scheme);
+
+        for (size_t i = 0; i < t.elems.size(); i++) {
+            const auto elem = reinterpret_cast<const TupleElemNode*>(t.elems[i].get());
+            elem->expr->accept(*this);
+        }
+
+        emit(bc_1op(BC_TUPLE, scheme_index));
+    }
+
+    void visit(const TupleElemNode&) override {
+        throw std::runtime_error("Unreachable");
+    }
+
+    void visit(const IndexNode& i) override {
+        i.base->accept(*this);
+        i.index_expr->accept(*this);
+
+        emit(bc_0op(BC_LDA));
+    }
+
+    void visit(const DotFieldNode& f) override {
+        size_t index = std::find(bc_file.strings.begin(), bc_file.strings.end(), f.field) - bc_file.strings.begin();
+        if (index == bc_file.strings.size()) {
+            bc_file.strings.push_back(f.field);
+        }
+
+        f.base->accept(*this);
+        emit(bc_1op(BC_LDT, index));
+    }
+
+    void visit(const DotIntNode& i) override {
+        int32_t index = - i.index;
+        i.base->accept(*this);
+        emit(bc_1op(BC_LDT, index));
+    }
+
     // void visit(const IfNode&) override;
     // void visit(const IfShortNode&) override;
     // void visit(const WhileNode&) override;
@@ -250,13 +318,7 @@ public:
     // void visit(const LoopInfNode&) override;
     // void visit(const ExitNode&) override;
     // void visit(const UnaryOpNode&) override;
-    // void visit(const IndexNode&) override;
-    // void visit(const DotFieldNode&) override;
-    // void visit(const DotIntNode&) override;
-    // void visit(const NoneLitNode&) override;
-    // void visit(const ArrayLitNode&) override;
-    // void visit(const TupleLitNode&) override;
-    // void visit(const TupleElemNode&) override;
+
     // void visit(const TypeNode&) override;
 };
 

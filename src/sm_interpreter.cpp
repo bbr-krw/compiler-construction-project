@@ -232,41 +232,43 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         }
 
         case BC_LDA: {
-            const auto array = frame[loc(bc)];
-            if (array->type != Type::Array) {
-                throw std::runtime_error("Array should be of array type");
-            }
-
             const auto index = frame.pop();
             if (index->type != Type::Int) {
                 throw std::runtime_error("Index should be an integer value");
             }
 
+            const auto array = frame.pop();
+            if (array->type != Type::Array) {
+                throw std::runtime_error("Array should be of array type");
+            }
+
             DArray* raw_array = reinterpret_cast<DArray*>(array->value);
             size_t raw_index = static_cast<size_t>(index->value);
 
-            DValue* value = raw_array->at(raw_index);
+            DValue* value = raw_array->contains(raw_index)
+                ? raw_array->at(raw_index)
+                : ((*raw_array)[raw_index] = make_none());
             frame.push(value);
 
             break;
         }
 
         case BC_LDT: {
-            const auto tuple = frame[loc(bc)];
+            const auto tuple = frame.pop();
             if (tuple->type != Type::Tuple) {
                 throw std::runtime_error("Tuple should be of tuple type");
             }
             DTuple* raw_tuple = reinterpret_cast<DTuple*>(tuple->value);
 
-            const auto index = imm16_1(bc);
-            if (index >= 0) {
-                if (index >= raw_tuple->scheme->field_names.size()) {
+            const auto index = imm32(bc);
+            if (index < 0) {
+                if (-1 - index >= raw_tuple->scheme->field_names.size()) {
                     throw std::runtime_error("invalid tuple index");
                 }
 
-                frame.push(raw_tuple->elements[index]);
+                frame.push(raw_tuple->elements[-1 - index]);
             } else {
-                const std::string& name = bcFile.strings.at(-1 - index);
+                const std::string& name = bcFile.strings.at(index);
                 const auto& field_names = raw_tuple->scheme->field_names;
                 const size_t tuple_index = std::find(field_names.begin(), field_names.end(), name) - field_names.begin();
                 if (tuple_index == field_names.size()) {
@@ -285,26 +287,30 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         }
 
         case BC_STA: {
-            const auto array = frame[loc(bc)];
-            if (array->type != Type::Array) {
-                throw std::runtime_error("Array should be of array type");
-            }
+            const auto element = frame.pop();
 
             const auto index = frame.pop();
             if (index->type != Type::Int) {
                 throw std::runtime_error("Index should be an integer value");
             }
 
+            const auto array = frame.pop();
+            if (array->type != Type::Array) {
+                throw std::runtime_error("Array should be of array type");
+            }
+
             DArray* raw_array = reinterpret_cast<DArray*>(array->value);
             size_t raw_index = static_cast<size_t>(index->value);
 
-            raw_array->emplace(raw_index, frame.pop());
+            raw_array->emplace(raw_index, element);
 
             break;
         }
 
         case BC_STT: {
-            const auto tuple = frame[loc(bc)];
+            const auto element = frame.pop();
+
+            const auto tuple = frame.pop();
             if (tuple->type != Type::Tuple) {
                 throw std::runtime_error("Tuple should be of tuple type");
             }
@@ -316,7 +322,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
                     throw std::runtime_error("invalid tuple index");
                 }
 
-                raw_tuple->elements[index] = frame.pop();
+                raw_tuple->elements[index] = element;
             } else {
                 const std::string& name = bcFile.strings.at(-1 - index);
                 const auto& field_names = raw_tuple->scheme->field_names;
@@ -325,7 +331,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
                     throw std::runtime_error("invalid tuple get");
                 }
 
-                raw_tuple->elements[tuple_index] = frame.pop();
+                raw_tuple->elements[tuple_index] = element;
             }
 
             break;
@@ -341,6 +347,11 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         case BC_STOP: {
             bc_index = frame.scheme->code.size();
             jumped = true;
+            break;
+        }
+
+        case BC_NONE: {
+            frame.push(make_none());
             break;
         }
 
@@ -381,6 +392,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             for (size_t i = 0; i < scheme->field_names.size(); i++) {
                 elements.push_back(frame.pop());
             }
+            std::reverse(elements.begin(), elements.end());
 
             frame.push(sm::make_tuple(scheme, elements));
             break;
@@ -415,6 +427,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             DValue* value = frame.pop();
             frame.push(value);
             frame.push(value);
+            break;
         }
 
         case BC_CJMP: {

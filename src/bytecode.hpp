@@ -38,109 +38,115 @@ static_assert(sizeof(Location) == 4, "Location is a valid argument");
  *  All stack operands are popped from the stack
  */
 enum BytecodeSignatures : uint8_t {
-  BC_BINOP    = 0,
   // ioperands: op, stack_operand: loperand, roperand
   // push result onto stack
+  BC_BINOP    = 0,
 
-  BC_LD       = 2,
   // ioperands: loc, stack_operand: none
   // loads value onto stack
+  BC_LD       = 2,
 
-  BC_LDA      = 3,
-  // ioperands: loc, stack_operands: index
+  // stack_operands: index, array
   // loads array element by index to stack
+  BC_LDA      = 3,
 
-  BC_LDT      = 4,
-  // ioperands: loc, index
+  // ioperands: index
+  // stack operands: tuple
   // if index is non-negative, it should be processed as index of name in strings table
   // if index is negative, it should be processed as index in tuple scheme
   // loads tuple element by ondex onto stack
+  BC_LDT      = 4,
 
-  BC_ST       = 5,
   // ioperands: loc, stack operand: value
   // stores value from stack
+  BC_ST       = 5,
 
-  BC_STA      = 6,
-  // ioperands: loc, stack_operands: index, element
+  // stack_operands: element, index, array
   // stores array element by index to array
+  BC_STA      = 6,
 
-  BC_STT      = 7,
-  // ioperands: loc, index
+  // ioperands: index
+  // stack operands: element, tuple
   // if index is non-negative, it should be processed as index of name in strings table
   // if index is negative, it should be processed as index in tuple scheme
   // stores tuple element by index to tuple
+  BC_STT      = 7,
 
-  BC_STD      = 8, // store dynamic
+  // store dynamic
   // ioperands: none, stack operands: source (&Dvalue), dest(&Dvalue)
   // writes value which source refers into object, which dest refers
+  BC_STD      = 8,
 
-  BC_STOP     = 15,
   // ends execution
+  BC_STOP     = 14,
 
-  BC_CONST    = 16,
+  // loads none onto stack
+  BC_NONE     = 15,
+
   // ioperands: const
   // loads const onto stack
-
-  BC_ARRAY    = 17,
+  BC_CONST    = 16,
+  
   // ioperands: -
   // loads empty array onto stack
+  BC_ARRAY    = 17,
 
-  BC_STRING   = 18,
   // ioperands: index
   // loads string constant onto stack
+  BC_STRING   = 18,
 
-  BC_TUPLE    = 19,
   // ioperands: tuple_scheme_index
   // stack operands: value1, value2, ...
   // loads tuple onto stack
+  BC_TUPLE    = 19,
 
-  BC_REAL     = 20,
   // ioperands: float ieee-754 const
   // loads float value onto stack
+  BC_REAL     = 20,
 
-  BC_BOOL     = 21,
   // ioperands:  0/1
   // loads boolean value onto stack
+  BC_BOOL     = 21,
 
-  BC_JMP      = 22,
   // ioperands: bytecode_index
   // jumps
+  BC_JMP      = 22,
 
-  BC_RET      = 24,
   // stack operands: rv
   // return
+  BC_RET      = 24,
 
-  BC_DROP     = 25,
   // stack operands: top
   // drops from stack
+  BC_DROP     = 25,
 
-  BC_DUP      = 26,
   // stack operands: top
   // pushes top to stack
+  BC_DUP      = 26,
 
-  BC_ISTYPE   = 27,
   // ioperands: type_id to check
   // stack operands: checked dvalue
   // pushes boolean if popped value is type_id
+  BC_ISTYPE   = 27,
 
-  BC_CJMP     = 80,
   // ioperands: bytecode_index
   // stack operands: condition
   // jumps if condition truthy
+  BC_CJMP     = 80,
 
-  BC_CLOSURE  = 84,
   // ioperands: function_scheme_index
   // captures values and loads function object onto stack
+  BC_CLOSURE  = 84,
 
-  BC_CALLC    = 85,
   // ioperands: args_count
   // stack operands: function, args... (args_count)
   // calls closure
+  BC_CALLC    = 85,
 
-  BC_PRINT   = 113,
   // ioperands: -
   // stack operands: value
   // prints value
+  BC_PRINT   = 113,
 };
 
 using Bytecode = std::uint64_t;
@@ -150,8 +156,6 @@ struct FunctionScheme {
   uint16_t args_number;
   uint16_t locals_number;
   std::vector<Location> capture;
-  // std::vector<LOC>?
-  // TODO[atrubnikov]
 };
 
 struct TupleScheme {
@@ -286,6 +290,7 @@ struct BcFile {
           }
           case BC_STD:     os << "STD\n"; break;
           case BC_STOP:    os << "STOP\n"; break;
+          case BC_NONE:    os << "NONE\n"; break;
           case BC_CONST:   os << "CONST " << imm32(bc) << "\n"; break;
           case BC_BOOL:    os << "BOOL " << imm32(bc) << "\n"; break;
           case BC_REAL:    os << "REAL " << raw_to_float(imm32(bc)) << "\n"; break;
