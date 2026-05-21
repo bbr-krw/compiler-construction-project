@@ -49,9 +49,9 @@ DValue make_int(int value);
 DValue make_real(double value);
 DValue make_bool(bool value);
 DValue make_string(const std::string& string);
-DValue make_array();
+DValue make_array(const DArray& elements);
 DValue make_tuple(const TupleScheme* scheme, const std::vector<DValue>& elements);
-DValue make_function();
+DValue make_function(const FunctionScheme* scheme, const std::vector<DValue>& captured);
 
 struct Frame {
     const FunctionScheme* scheme;
@@ -60,13 +60,18 @@ struct Frame {
     std::vector<DValue> args;
     std::vector<DValue> locals;
     std::vector<DValue> stack;
+
+    void push(DValue value);
+    DValue pop();
+
+    DValue& operator[](Location loc);
 };
 
 struct Runtime {
     Memory memory;
     std::vector<Frame> stack;
 
-    void call(DFunc func, void* return_addr, std::vector<DValue> args, size_t locals);
+    void call(DFunc func, size_t return_index, std::vector<DValue> args, size_t locals);
     void print(DValue value);
 };
 

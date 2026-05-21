@@ -145,15 +145,15 @@ static Bytecode with_bc_signature(BytecodeSignatures s, Bytecode ops) {
 static Bytecode bc_2op(BytecodeSignatures s, uint16_t op1, uint16_t op2) {
   uint64_t op = op1;
   op = (op << 16) | op2;
-  return with_bc_signature(s, with_bc_signature(s, op));
+  return with_bc_signature(s, op);
 }
 
 static Bytecode bc_1op(BytecodeSignatures s, uint32_t op) {
-  return with_bc_signature(s, with_bc_signature(s, op));
+  return with_bc_signature(s, op);
 }
 
 static Bytecode bc_0op(BytecodeSignatures s) {
-  return with_bc_signature(s, with_bc_signature(s, 0));
+  return with_bc_signature(s, 0);
 }
 
 #define BINOPS(DEF) \
@@ -169,7 +169,8 @@ static Bytecode bc_0op(BytecodeSignatures s) {
   DEF( 9, ==)\
   DEF(10, !=)\
   DEF(11, &&)\
-  DEF(12, ||)
+  DEF(12, ||)\
+  DEF(13, ^)
 
 struct BcFile {
   std::vector<std::string> strings;

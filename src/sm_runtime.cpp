@@ -33,8 +33,8 @@ DValue make_string(const std::string& string) {
     return DValue{.type = Type::String, .mark = false, .value = reinterpret_cast<uint64_t>(segment)};
 }
 
-DValue make_array(size_t n) {
-    auto array = new DArray{};
+DValue make_array(const DArray& elements) {
+    auto array = new DArray{elements};
     return DValue{.type = Type::Array, .mark = false, .value = reinterpret_cast<uint64_t>(array)};
 }
 
@@ -58,15 +58,39 @@ DValue make_function(const FunctionScheme* scheme, const std::vector<DValue>& ca
     return DValue{.type = Type::Func, .mark = false, .value = reinterpret_cast<uint64_t>(func)};
 }
 
-void Runtime::call(DFunc func, void* return_addr, std::vector<DValue> args, size_t locals) {
+void Runtime::call(DFunc func, size_t return_index, std::vector<DValue> args, size_t locals) {
     Frame frame;
 
-    frame.return_addr = return_addr;
+    frame.return_index = return_index;
     frame.args = args;
     frame.locals.resize(locals);
-    frame.captured.assign(func.capture, func.capture + func.scheme.capture.size());
+    frame.captured.assign(func.capture, func.capture + func.scheme->capture.size());
 
     stack.push_back(frame);
+}
+
+void Frame::push(DValue value) {
+    stack.push_back(value);
+}
+
+DValue Frame::pop() {
+    DValue value = stack.back();
+    stack.pop_back();
+    return value;
+}
+
+DValue& Frame::operator[](Location loc) {
+    switch (loc.type) {
+    case LOCAL: {
+        return locals[loc.index];
+    }
+    case ARGUMENT: {
+        return args[loc.index];
+    }
+    case CAPTURED: {
+        return captured[loc.index];
+    }
+    }
 }
 
 void Runtime::print(DValue value) {
@@ -120,13 +144,16 @@ void Runtime::print(DValue value) {
     case Type::Tuple: {
         auto tuple = reinterpret_cast<DTuple*>(value.value);
         std::cout << "{";
-        for (size_t i = 0; i < tuple->capacity; i++) {
+        for (size_t i = 0; i < tuple->scheme->field_names.size(); i++) {
             if (i > 0) {
                 std::cout << ", ";
             }
-            print(tuple->data[i].key);
-            std::cout << ":";
-            print(tuple->data[i].value);
+
+            if (tuple->scheme->field_names[i].has_value()) {
+                std::cout << tuple->scheme->field_names[i].value();
+                std::cout << "=";
+            }
+            print(tuple->elements[i]);
         }
         std::cout << "}";
         break;
