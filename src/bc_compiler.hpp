@@ -1,8 +1,10 @@
 #pragma once
 
+#include "ast.hpp"
 #include "runtime.hpp"
 #include "bytecode.hpp"
 
+#include <stdexcept>
 #include <vector>
 #include <map>
 
@@ -26,12 +28,10 @@ class BcCompiler : public ASTVisitorBase<BcCompiler> {
             }
         }
         Location addLocal(std::string name) {
-            var_scope[name] = Location{ LocTypes::LOCAL, scheme.locals_number };
-            return Location { LocTypes::LOCAL, ++scheme.locals_number };
+            return var_scope[name] = Location{ LocTypes::LOCAL, scheme.locals_number++ };
         }
         Location addArg(std::string name) {
-            var_scope[name] = Location{ LocTypes::ARGUMENT, scheme.args_number };
-            return Location { LocTypes::ARGUMENT, ++scheme.locals_number };
+            return var_scope[name] = Location{ LocTypes::ARGUMENT, scheme.args_number++ };
         }
     };
 
@@ -57,12 +57,44 @@ private:
         return bc_file.functions.size() - 1;
     }
 
+    std::optional<Location> capture(const std::string& name, size_t frame_index) {
+        if (frame_index == 0) {
+            return std::nullopt;
+        }
+
+        auto parent_location = telescope[frame_index - 1].resolve(name).or_else([&] {
+            return capture(name, frame_index - 1);
+        });
+        
+        if (not parent_location.has_value()) {
+            return std::nullopt;
+        }
+        
+        auto& captured = telescope[frame_index].scheme.capture;
+
+        auto location = telescope[frame_index].var_scope[name] = Location{
+            .type = LocTypes::CAPTURED, .index = static_cast<uint16_t>(captured.size())
+        };
+        telescope[frame_index].scheme.capture.push_back(parent_location.value());
+
+        return location;
+    }
+
 public:
     explicit BcCompiler() {};
 
     sm::BcFile compile(const ASTNode& root) {
         root.accept(*this);
         return bc_file;
+    }
+
+    std::optional<Location> resolve(const std::string& name) {
+        auto local_location = curFun().resolve(name);
+        if (local_location.has_value()) {
+            return local_location.value();
+        }
+
+        return capture(name, telescope.size() - 1);
     }
 
     void visit(const ProgramNode& n) override {
@@ -96,7 +128,7 @@ public:
     }
 
     void visit(const IdentNode& n) override {
-        auto var_handle = curFun().resolve(n.ident_name);
+        auto var_handle = resolve(n.ident_name);
         if (var_handle) {
             emit(bc_1op(BC_LD, packLock(*var_handle)));
         } else {
