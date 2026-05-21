@@ -89,12 +89,16 @@ enum BytecodeSignatures : uint8_t {
 
   BC_REAL     = 20,
   // ioperands: float ieee-754 const
-  // loads float vluae onto stack
+  // loads float value onto stack
+
+  BC_BOOL     = 21,
+  // ioperands:  0/1
+  // loads boolean value onto stack
 
   BC_JMP      = 22,
   // ioperands: bytecode_index
   // jumps
-  
+
   BC_RET      = 24,
   // stack operands: rv
   // return
@@ -267,6 +271,7 @@ struct BcFile {
           }
           case BC_STOP:    os << "STOP\n"; break;
           case BC_CONST:   os << "CONST " << imm32(bc) << "\n"; break;
+          case BC_BOOL:    os << "BOOL " << imm32(bc) << "\n"; break;
           case BC_REAL:    os << "REAL " << raw_to_float(imm32(bc)) << "\n"; break;
           case BC_ARRAY:   os << "ARRAY\n"; break;
           case BC_STRING:  os << "STRING #" << imm32(bc) << "\n"; break;

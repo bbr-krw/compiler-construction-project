@@ -213,6 +213,10 @@ public:
         emit(bc_1op(BC_BINOP, binop_reencode[static_cast<size_t>(b.op)]));
     }
 
+    void visit(const BoolLitNode& n) override {
+        emit(bc_1op(BC_BOOL, n.value));
+    }
+
     // void visit(const AssignNode&) override;
     // void visit(const IfNode&) override;
     // void visit(const IfShortNode&) override;
@@ -226,7 +230,6 @@ public:
     // void visit(const IndexNode&) override;
     // void visit(const DotFieldNode&) override;
     // void visit(const DotIntNode&) override;
-    // void visit(const BoolLitNode&) override;
     // void visit(const NoneLitNode&) override;
     // void visit(const ArrayLitNode&) override;
     // void visit(const TupleLitNode&) override;

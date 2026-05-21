@@ -337,6 +337,12 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             break;
         }
 
+        case BC_BOOL: {
+            DValue value = make_bool(imm32(bc));
+            frame.push(value);
+            break;
+        }
+
         case BC_REAL: {
             DValue value = make_real(raw_to_float(imm32(bc)));
             frame.push(value);
