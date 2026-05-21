@@ -113,7 +113,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             DValue second = frame.pop();
             DValue first = frame.pop();
 
-            uint64_t op = ((bc >> 8) & 0xf);
+            int32_t op = imm32(bc);
 
             switch (first.type) {
             case Type::None: {
@@ -177,6 +177,8 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
                     }
                     }
                 }
+
+                break;
             }
 
             case Type::Bool: {
@@ -196,6 +198,8 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
                     throw std::runtime_error("unsupported binop operand type");
                 }
                 }
+
+                break;
             }
 
             case Type::String:
@@ -210,6 +214,8 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             }
 
             }
+
+            break;
         }
 
         case BC_LD: {
@@ -374,6 +380,9 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             jumped = true;
 
             runtime->stack.pop_back();
+            if (not runtime->stack.empty()) {
+                runtime->stack.back().push(return_value);
+            }
 
             break;
         }
@@ -430,6 +439,10 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             new_frame.return_index = bc_index + 1;
             new_frame.captured.assign(raw_func->capture, raw_func->capture + raw_func->scheme->capture.size());
             new_frame.locals.resize(raw_func->scheme->locals_number);
+
+            if (args_count != raw_func->scheme->args_number) {
+                throw std::runtime_error("Function called with invalid args number");
+            }
 
             for (size_t i = 0; i < raw_func->scheme->args_number; i++) {
                 new_frame.args.push_back(frame.pop());

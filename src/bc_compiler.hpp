@@ -15,6 +15,7 @@ class BcCompiler : public ASTVisitorBase<BcCompiler> {
 
     struct Function {
         explicit Function(const std::vector<std::string> &args) {
+            scheme.args_number = 0;
             scheme.locals_number = 0;
             for (auto &arg : args) {
                 addArg(arg);
@@ -160,10 +161,10 @@ public:
 
         fn.body->accept(*this);
 
-        emit(bc_1op(BC_CLOSURE, bc_file.functions.size()));
         bc_file.functions.push_back(telescope.back().scheme);
-
         telescope.pop_back();
+        
+        emit(bc_1op(BC_CLOSURE, bc_file.functions.size() - 1));
     }
 
     void visit(const CallNode& call) override {
@@ -176,7 +177,8 @@ public:
         emit(bc_1op(BC_CALLC, call.args.size()));
     }
 
-    void visit(const ReturnNode&) override {
+    void visit(const ReturnNode& r) override {
+        r.value->accept(*this);
         emit(bc_0op(BC_RET));
     }
 
@@ -188,6 +190,28 @@ public:
     void visit(const StrLitNode& n) override {
         emit(bc_1op(BC_STRING, bc_file.addString(n.value)));
     }
+    
+    void visit(const BinOpNode& b) override {
+        static int32_t binop_reencode[] = {
+            12,     // OR
+            11,     // AND
+            13,     // XOR
+            5,      // LT
+            6,      // LE
+            7,      // GT
+            8,      // GE
+            9,      // EQ
+            10,     // NEQ
+            0,      // ADD
+            1,     // SUB
+            2,     // MUL
+            3,     // DIV
+        };
+
+        b.left->accept(*this);
+        b.right->accept(*this);
+        emit(bc_1op(BC_BINOP, binop_reencode[static_cast<size_t>(b.op)]));
+    }
 
     // void visit(const AssignNode&) override;
     // void visit(const IfNode&) override;
@@ -197,7 +221,6 @@ public:
     // void visit(const ForIterNode&) override;
     // void visit(const LoopInfNode&) override;
     // void visit(const ExitNode&) override;
-    // void visit(const BinOpNode&) override;
     // void visit(const UnaryOpNode&) override;
     // void visit(const IsNode&) override;
     // void visit(const IndexNode&) override;

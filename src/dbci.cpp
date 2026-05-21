@@ -37,20 +37,27 @@ int main(int argc, char* argv[]) {
         return 2;
     }
 
+    sm::BcFile bc_file;
     try {
         sm::BcCompiler bc_comp;
-        auto bc_file = bc_comp.compile(*root);
+        bc_file = bc_comp.compile(*root);
 
         // debug output
         std::println(stderr, "Bytecode generated");
         bc_file.print(std::cerr);
-        std::println(stderr, "Running SM interpreter");
-
-        sm::Runtime runtime;
-        sm::interprete(&runtime, bc_file);
     } catch (const std::exception& ex) {
         std::println(stderr, "Bytecode compilation error: {}", ex.what());
         return 3;
     }
+
+    try {
+        std::println(stderr, "Running SM interpreter");
+        sm::Runtime runtime;
+        sm::interprete(&runtime, bc_file);
+    } catch (const std::exception& ex) {
+        std::println(stderr, "Runtime error: {}", ex.what());
+        return 3;
+    }
+
     return 0;
 }
