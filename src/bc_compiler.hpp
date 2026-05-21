@@ -155,17 +155,17 @@ public:
             const auto& arg = reinterpret_cast<const IdentNode&>(pl->params[i]);
             args.push_back(arg.ident_name);
         }
-        
+
         telescope.push_back(Function(args));
 
         fn.body->accept(*this);
 
         emit(bc_1op(BC_CLOSURE, bc_file.functions.size()));
         bc_file.functions.push_back(telescope.back().scheme);
-        
+
         telescope.pop_back();
     }
-    
+
     void visit(const CallNode& call) override {
         for (const auto& arg : call.args) {
             arg->accept(*this);
@@ -178,6 +178,11 @@ public:
 
     void visit(const ReturnNode&) override {
         emit(bc_0op(BC_RET));
+    }
+
+    void visit(const RealLitNode& n) override {
+        float val = n.value;
+        emit(bc_1op(BC_REAL, *reinterpret_cast<uint32_t*>(&val)));
     }
 
     // void visit(const AssignNode&) override;
@@ -194,7 +199,6 @@ public:
     // void visit(const IndexNode&) override;
     // void visit(const DotFieldNode&) override;
     // void visit(const DotIntNode&) override;
-    // void visit(const RealLitNode&) override;
     // void visit(const StrLitNode&) override;
     // void visit(const BoolLitNode&) override;
     // void visit(const NoneLitNode&) override;

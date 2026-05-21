@@ -46,7 +46,7 @@ struct Memory {
 };
 
 DValue make_int(int value);
-DValue make_real(double value);
+DValue make_real(float value);
 DValue make_bool(bool value);
 DValue make_string(const std::string& string);
 DValue make_array(const DArray& elements);

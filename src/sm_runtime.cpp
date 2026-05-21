@@ -19,8 +19,8 @@ DValue make_int(int value) {
     return DValue{.type = Type::Int, .mark = false, .value = static_cast<uint64_t>(value)};
 }
 
-DValue make_real(double value) {
-    return DValue{.type = Type::Real, .mark = false, .value = static_cast<uint64_t>(value)};
+DValue make_real(float value) {
+    return DValue{.type = Type::Real, .mark = false, .value = float_to_raw(value)};
 }
 
 DValue make_bool(bool value) {
@@ -106,7 +106,7 @@ void Runtime::print(DValue value) {
     }
 
     case Type::Real: {
-        std::cout << static_cast<double>(value.value);
+        std::cout << raw_to_float(value.value);
         break;
     }
 

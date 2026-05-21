@@ -87,6 +87,10 @@ enum BytecodeSignatures : uint8_t {
   // stack operands: value1, value2, ...
   // loads tuple onto stack
 
+  BC_REAL     = 20,
+  // ioperands: float ieee-754 const
+  // loads float vluae onto stack
+
   BC_JMP      = 22,
   // ioperands: bytecode_index
   // jumps
@@ -152,6 +156,14 @@ static Location loc(Bytecode bc) {
 
 static BytecodeSignatures sig(Bytecode bc) {
     return static_cast<BytecodeSignatures>(bc & 0xff);
+}
+
+static float raw_to_float(uint32_t val) {
+    return *reinterpret_cast<float*>(&val);
+}
+
+static uint32_t float_to_raw(float f) {
+    return *reinterpret_cast<uint32_t*>(&f);
 }
 
 static Bytecode bc_2op(BytecodeSignatures s, uint16_t op1, uint32_t op2) {
@@ -256,6 +268,7 @@ struct BcFile {
           }
           case BC_STOP:    os << "STOP\n"; break;
           case BC_CONST:   os << "CONST " << imm32(bc) << "\n"; break;
+          case BC_REAL:    os << "REAL " << raw_to_float(imm32(bc)) << "\n"; break;
           case BC_ARRAY:   os << "ARRAY\n"; break;
           case BC_STRING:  os << "STRING #" << imm32(bc) << "\n"; break;
           case BC_TUPLE:   os << "TUPLE #" << imm32(bc) << "\n"; break;
