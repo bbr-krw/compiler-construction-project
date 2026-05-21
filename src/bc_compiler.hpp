@@ -115,7 +115,6 @@ public:
     }
 
     void visit(const VarDefNode& n) override {
-        // TODO: handle closure creation
         Location varLoc = curFun().addLocal(n.varname);
         if (n.init) {
             n.init->accept(*this); // loads init value onto stack
