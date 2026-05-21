@@ -217,6 +217,22 @@ public:
         emit(bc_1op(BC_BOOL, n.value));
     }
 
+    void visit(const IsNode& n) override {
+        static uint32_t type_reencode[] = {
+            1, // INT
+            2, // REAL
+            3, // BOOL
+            4, // STRING
+            0, // NONE
+            5, // ARRAY
+            6, // TUPLE
+            7, // FUNC
+        };
+        n.operand->accept(*this);
+        TypeNode::Type ast_expected_type = static_cast<const TypeNode&>(*n.type_node).type;
+        emit(bc_1op(BC_ISTYPE, type_reencode[static_cast<uint32_t>(ast_expected_type)]));
+    }
+
     // void visit(const AssignNode&) override;
     // void visit(const IfNode&) override;
     // void visit(const IfShortNode&) override;
@@ -226,7 +242,6 @@ public:
     // void visit(const LoopInfNode&) override;
     // void visit(const ExitNode&) override;
     // void visit(const UnaryOpNode&) override;
-    // void visit(const IsNode&) override;
     // void visit(const IndexNode&) override;
     // void visit(const DotFieldNode&) override;
     // void visit(const DotIntNode&) override;

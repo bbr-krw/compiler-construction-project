@@ -11,8 +11,6 @@
 
 namespace sm {
 
-enum class Type { None, Int, Real, Bool, String, Array, Tuple, Func };
-
 struct DValue {
     Type type{Type::None};
     bool mark;

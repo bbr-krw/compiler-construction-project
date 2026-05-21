@@ -218,6 +218,13 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             break;
         }
 
+        case BC_ISTYPE: {
+            DValue val = frame.pop();
+            Type expected_type = static_cast<Type>(imm32(bc));
+            frame.push(make_bool(val.type == expected_type));
+            break;
+        }
+
         case BC_LD: {
             const auto value = frame[loc(bc)];
             frame.push(value);

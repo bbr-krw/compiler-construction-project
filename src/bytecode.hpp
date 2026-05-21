@@ -24,6 +24,9 @@ struct Location {
 
 std::ostream& operator<< (std::ostream& os, const Location& loc);
 
+enum class Type { None, Int, Real, Bool, String, Array, Tuple, Func };
+std::ostream& operator<< (std::ostream&, const Type&);
+
 uint32_t packLock(Location loc);
 
 Location unpackLock(uint32_t data);
@@ -110,6 +113,11 @@ enum BytecodeSignatures : uint8_t {
   BC_DUP      = 26,
   // stack operands: top
   // pushes top to stack
+
+  BC_ISTYPE   = 27,
+  // ioperands: type_id to check
+  // stack operands: checked dvalue
+  // pushes boolean if popped value is type_id
 
   BC_CJMP     = 80,
   // ioperands: bytecode_index
@@ -254,6 +262,9 @@ struct BcFile {
             }
             os << "BINOP " << opname << "\n";
             break;
+          }
+          case BC_ISTYPE: {
+            os << "ISTYPE type=" << static_cast<sm::Type> (imm32(bc)) << "\n"; break;
           }
           case BC_LD:      os << "LD loc=" << loc(bc) << "\n"; break;
           case BC_LDA: {
