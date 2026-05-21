@@ -152,8 +152,8 @@ public:
         const auto pl = reinterpret_cast<const ParamListNode*>(fn.params.get());
         std::vector<std::string> args;
         for (size_t i = 0; i < pl->params.size(); i++) {
-            const auto& arg = reinterpret_cast<const IdentNode&>(pl->params[i]);
-            args.push_back(arg.ident_name);
+            const auto arg = reinterpret_cast<const IdentNode*>(pl->params[i].get());
+            args.push_back(arg->ident_name);
         }
 
         telescope.push_back(Function(args));

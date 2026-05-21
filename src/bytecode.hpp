@@ -230,9 +230,8 @@ struct BcFile {
       os << "  [" << fi << "] capture: [";
       for (size_t ci = 0; ci < fn.capture.size(); ++ci) {
         if (ci) os << ", ";
-        const auto& loc = fn.capture[ci];
-        const char* tname = (loc.type == LOCAL) ? "LOCAL" : (loc.type == ARGUMENT) ? "ARG" : "CAP";
-        os << tname << "(" << loc.index << ")";
+        const Location& loc = fn.capture[ci];
+        os << loc;
       }
       os << "]\n";
 
