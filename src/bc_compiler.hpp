@@ -14,6 +14,7 @@ class BcCompiler : public ASTVisitorBase<BcCompiler> {
 
     struct Function {
         explicit Function(const std::vector<std::string> &args) {
+            scheme.locals_number = 0;
             for (auto &arg : args) {
                 addArg(arg);
             }

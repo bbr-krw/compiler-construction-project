@@ -13,23 +13,6 @@
 
 namespace sm {
 
-int32_t imm32(Bytecode bc) {
-    return static_cast<int32_t>((bc >> 8) & 0xffff'ffff);
-}
-
-Location loc(Bytecode bc) {
-    int32_t imm = imm32(bc);
-    return *reinterpret_cast<Location*>(&imm);
-}
-
-int16_t imm16_1(Bytecode bc) {
-    return static_cast<int16_t>((bc >> 24) & 0xffff);
-}
-
-int16_t imm16_2(Bytecode bc) {
-    return static_cast<int16_t>((bc >> 8) & 0xffff);
-}
-
 DValue concat(DValue first, DValue second) {
     if (first.type != second.type) {
         throw std::runtime_error("cannot concat different types");

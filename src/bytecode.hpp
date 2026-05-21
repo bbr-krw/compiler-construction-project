@@ -22,6 +22,8 @@ struct Location {
   uint16_t index;
 };
 
+std::ostream& operator<< (std::ostream& os, const Location& loc);
+
 uint32_t packLock(Location loc);
 
 Location unpackLock(uint32_t data);
@@ -136,24 +138,32 @@ struct TupleScheme {
   std::vector<std::optional<std::string>> field_names;
 };
 
-static Bytecode with_bc_signature(BytecodeSignatures s, Bytecode ops) {
-  assert((ops & 0xFF00'0000'0000'0000) == 0);
-  assert(s < 256);
-  return (ops << 8) | s;
+static int16_t imm16_1(Bytecode bc) {
+    return static_cast<int16_t>((bc >> 16) & 0xffff);
 }
 
-static Bytecode bc_2op(BytecodeSignatures s, uint16_t op1, uint16_t op2) {
-  uint64_t op = op1;
-  op = (op << 16) | op2;
-  return with_bc_signature(s, op);
+static int32_t imm32(Bytecode bc) {
+    return static_cast<int32_t>((bc >> 32) & 0xffffffff);
+}
+
+static Location loc(Bytecode bc) {
+    return unpackLock(imm32(bc));
+}
+
+static BytecodeSignatures sig(Bytecode bc) {
+    return static_cast<BytecodeSignatures>(bc & 0xff);
+}
+
+static Bytecode bc_2op(BytecodeSignatures s, uint16_t op1, uint32_t op2) {
+  return (static_cast<int64_t>(op2) << 32) | (static_cast<int32_t>(op1) << 16) | s;
 }
 
 static Bytecode bc_1op(BytecodeSignatures s, uint32_t op) {
-  return with_bc_signature(s, op);
+  return (static_cast<int64_t>(op) << 32) | s;
 }
 
 static Bytecode bc_0op(BytecodeSignatures s) {
-  return with_bc_signature(s, 0);
+  return s;
 }
 
 #define BINOPS(DEF) \
@@ -216,13 +226,11 @@ struct BcFile {
 
       for (size_t bi = 0; bi < fn.code.size(); ++bi) {
         Bytecode bc = fn.code[bi];
-        uint8_t sig = bc & 0xFF;
-        uint64_t ops = bc >> 8;
         os << "    " << std::setw(4) << bi << ": ";
 
-        switch (static_cast<BytecodeSignatures>(sig)) {
+        switch (sig(bc)) {
           case BC_BINOP: {
-            uint16_t op = static_cast<uint16_t>(ops & 0xFFFF);
+            uint16_t op = imm16_1(bc);
             const char* opname = "?";
             switch (op) {
 #define CASE(opc, sym) case opc: opname = #sym; break;
@@ -232,43 +240,34 @@ struct BcFile {
             os << "BINOP " << opname << "\n";
             break;
           }
-          case BC_LD:      os << "LD loc=" << static_cast<uint16_t>(ops) << "\n"; break;
+          case BC_LD:      os << "LD loc=" << loc(bc) << "\n"; break;
           case BC_LDA: {
-            uint16_t loc  = static_cast<uint16_t>(ops >> 16);
-            uint16_t idx  = static_cast<uint16_t>(ops & 0xFFFF);
-            os << "LDA loc=" << loc << " idx=" << idx << "\n"; break;
+            os << "LDA loc=" << loc(bc) << "\n"; break;
           }
           case BC_LDT: {
-            uint16_t loc  = static_cast<uint16_t>(ops >> 16);
-            int16_t  idx  = static_cast<int16_t>(ops & 0xFFFF);
-            os << "LDT loc=" << loc << " idx=" << idx << "\n"; break;
+            os << "LDT loc=" << loc(bc) << " idx=" << imm16_1(bc) << "\n"; break;
           }
-          case BC_ST:      os << "ST loc=" << static_cast<uint16_t>(ops) << "\n"; break;
+          case BC_ST:      os << "ST loc=" << loc(bc) << "\n"; break;
           case BC_STA: {
-            uint16_t loc  = static_cast<uint16_t>(ops >> 32);
-            uint16_t idx  = static_cast<uint16_t>((ops >> 16) & 0xFFFF);
-            uint16_t val  = static_cast<uint16_t>(ops & 0xFFFF);
-            os << "STA loc=" << loc << " idx=" << idx << " val=" << val << "\n"; break;
+            os << "STA loc=" << loc(bc) << "\n"; break;
           }
           case BC_STT: {
-            uint16_t loc  = static_cast<uint16_t>(ops >> 16);
-            int16_t  idx  = static_cast<int16_t>(ops & 0xFFFF);
-            os << "STT loc=" << loc << " idx=" << idx << "\n"; break;
+            os << "STT loc=" << loc(bc) << " idx=" << imm16_1(bc) << "\n"; break;
           }
           case BC_STOP:    os << "STOP\n"; break;
-          case BC_CONST:   os << "CONST " << static_cast<int32_t>(ops) << "\n"; break;
+          case BC_CONST:   os << "CONST " << imm32(bc) << "\n"; break;
           case BC_ARRAY:   os << "ARRAY\n"; break;
-          case BC_STRING:  os << "STRING #" << static_cast<uint16_t>(ops) << "\n"; break;
-          case BC_TUPLE:   os << "TUPLE #" << static_cast<uint16_t>(ops) << "\n"; break;
-          case BC_JMP:     os << "JMP -> " << static_cast<uint32_t>(ops) << "\n"; break;
+          case BC_STRING:  os << "STRING #" << imm32(bc) << "\n"; break;
+          case BC_TUPLE:   os << "TUPLE #" << imm32(bc) << "\n"; break;
+          case BC_JMP:     os << "JMP -> " << imm32(bc) << "\n"; break;
           case BC_RET:     os << "RET\n"; break;
           case BC_DROP:    os << "DROP\n"; break;
           case BC_DUP:     os << "DUP\n"; break;
-          case BC_CJMP:    os << "CJMP -> " << static_cast<uint32_t>(ops) << "\n"; break;
-          case BC_CLOSURE: os << "CLOSURE #" << static_cast<uint16_t>(ops) << "\n"; break;
-          case BC_CALLC:   os << "CALLC args=" << static_cast<uint16_t>(ops) << "\n"; break;
+          case BC_CJMP:    os << "CJMP -> " << imm32(bc) << "\n"; break;
+          case BC_CLOSURE: os << "CLOSURE #" << imm32(bc) << "\n"; break;
+          case BC_CALLC:   os << "CALLC args=" << imm32(bc) << "\n"; break;
           case BC_PRINT:   os << "PRINT\n"; break;
-          default:         os << "UNKNOWN(" << static_cast<int>(sig) << ")\n"; break;
+          default:         os << "UNKNOWN(" << static_cast<int>(sig(bc)) << ")\n"; break;
         }
       }
     }
