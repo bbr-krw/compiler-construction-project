@@ -459,6 +459,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             for (size_t i = 0; i < raw_func->scheme->args_number; i++) {
                 new_frame.args.push_back(frame.pop());
             }
+            std::reverse(new_frame.args.begin(), new_frame.args.end());
 
             runtime->stack.push_back(new_frame);
 
