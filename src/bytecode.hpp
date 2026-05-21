@@ -69,7 +69,11 @@ enum BytecodeSignatures : uint8_t {
   // if index is non-negative, it should be processed as index of name in strings table
   // if index is negative, it should be processed as index in tuple scheme
   // stores tuple element by index to tuple
-  
+
+  BC_STD      = 8, // store dynamic
+  // ioperands: none, stack operands: source (&Dvalue), dest(&Dvalue)
+  // writes value which source refers into object, which dest refers
+
   BC_STOP     = 15,
   // ends execution
 
@@ -280,6 +284,7 @@ struct BcFile {
           case BC_STT: {
             os << "STT loc=" << loc(bc) << " idx=" << imm16_1(bc) << "\n"; break;
           }
+          case BC_STD:     os << "STD\n"; break;
           case BC_STOP:    os << "STOP\n"; break;
           case BC_CONST:   os << "CONST " << imm32(bc) << "\n"; break;
           case BC_BOOL:    os << "BOOL " << imm32(bc) << "\n"; break;

@@ -163,7 +163,7 @@ public:
 
         bc_file.functions.push_back(telescope.back().scheme);
         telescope.pop_back();
-        
+
         emit(bc_1op(BC_CLOSURE, bc_file.functions.size() - 1));
     }
 
@@ -190,7 +190,7 @@ public:
     void visit(const StrLitNode& n) override {
         emit(bc_1op(BC_STRING, bc_file.addString(n.value)));
     }
-    
+
     void visit(const BinOpNode& b) override {
         static int32_t binop_reencode[] = {
             12,     // OR
@@ -233,7 +233,16 @@ public:
         emit(bc_1op(BC_ISTYPE, type_reencode[static_cast<uint32_t>(ast_expected_type)]));
     }
 
-    // void visit(const AssignNode&) override;
+    void visit(const AssignNode& n) override {
+        n.lhs->accept(*this);
+        n.rhs->accept(*this);
+        emit(bc_0op(BC_STD));
+        // if (n.init) {
+        //     n.init->accept(*this); // loads init value onto stack
+        //     emit(bc_1op(BC_ST, packLock(varLoc)));
+        // }
+
+    }
     // void visit(const IfNode&) override;
     // void visit(const IfShortNode&) override;
     // void visit(const WhileNode&) override;

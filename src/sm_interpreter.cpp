@@ -228,7 +228,6 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         case BC_LD: {
             const auto value = frame[loc(bc)];
             frame.push(value);
-
             break;
         }
 
