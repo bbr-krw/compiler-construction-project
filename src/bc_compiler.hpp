@@ -80,11 +80,11 @@ private:
         auto parent_location = telescope[frame_index - 1].resolve(name).or_else([&] {
             return capture(name, frame_index - 1);
         });
-        
+
         if (not parent_location.has_value()) {
             return std::nullopt;
         }
-        
+
         auto& captured = telescope[frame_index].scheme.capture;
 
         auto location = telescope[frame_index].var_scope[name] = Location{
@@ -372,14 +372,38 @@ public:
         emit(then_code);
     }
 
-    // void visit(const WhileNode&) override;
-    // void visit(const ForRangeNode&) override;
+    void visit(const WhileNode& n) override {
+        // simple loop layout
+        // L_ENTRY:
+        // <pred_code>
+        // CJMPZ L_EXIT
+        //      <body_code>
+        // JMP L_ENTRY
+        // L_EXIT:
+
+        std::vector<Bytecode> body_code = compileIntoCodeBuff(*n.body);
+        std::vector<Bytecode> pred_code = compileIntoCodeBuff(*n.cond);
+
+        int l_entry_bcindex = code_buff.size();
+        int l_exit_bcindex = l_entry_bcindex
+                             + pred_code.size()
+                             + 1 // CJMPZ L_EXIT
+                             + body_code.size()
+                             + 1; // JMP L_ENTRY;
+        emit(pred_code);
+        emit(bc_1op(BC_CJMPZ, l_exit_bcindex));
+        emit(body_code);
+        emit(bc_1op(BC_JMP, l_entry_bcindex));
+    }
+
+    void visit(const ForRangeNode& n) override {
+        // TODO: introduce scopes!
+    }
     // void visit(const ForIterNode&) override;
+
     // void visit(const LoopInfNode&) override;
     // void visit(const ExitNode&) override;
-    // void visit(const UnaryOpNode&) override;
 
-    // void visit(const TypeNode&) override;
 };
 
 } // namespace sm

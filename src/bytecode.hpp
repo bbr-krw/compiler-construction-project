@@ -14,7 +14,7 @@ namespace sm {
 enum LocTypes : uint16_t {
   LOCAL, // #args + 1 ... inf
   ARGUMENT, // 0 ... #args
-  CAPTURED, // #-1 ... -inf? // TODO[atrubnikov] Not supported
+  CAPTURED, // #-1 ... -inf?
 };
 
 struct Location {
@@ -86,7 +86,7 @@ enum BytecodeSignatures : uint8_t {
   // ioperands: const
   // loads const onto stack
   BC_CONST    = 16,
-  
+
   // ioperands: -
   // loads empty array onto stack
   BC_ARRAY    = 17,
