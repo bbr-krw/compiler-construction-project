@@ -145,10 +145,10 @@ public:
     }
 
     void visit(const PrintNode& n) override {
-        for (auto& expr : n.exprs) {
+        for (auto& expr : n.exprs | std::views::reverse) {
             expr->accept(*this);
-            emit(bc_0op(BC_PRINT));
         }
+        emit(bc_1op(BC_PRINT, n.exprs.size()));
     }
 
     void visit(const IdentNode& n) override {

@@ -154,9 +154,9 @@ enum BytecodeSignatures : uint8_t {
     // calls closure
     BC_CALLC = 85,
 
-    // ioperands: -
-    // stack operands: value
-    // prints value
+    // ioperands: number of values popped from stack-
+    // stack operands: value1, value2, ...
+    // prints values separated by space and ended by newline
     BC_PRINT = 113,
 };
 
@@ -371,7 +371,7 @@ struct BcFile {
                     os << "CALLC args=" << imm32(bc) << "\n";
                     break;
                 case BC_PRINT:
-                    os << "PRINT\n";
+                    os << "PRINT args=" << imm32(bc) << "\n";
                     break;
                 default:
                     os << "UNKNOWN(" << static_cast<int>(sig(bc)) << ")\n";

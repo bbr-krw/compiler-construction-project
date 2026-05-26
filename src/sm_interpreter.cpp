@@ -565,8 +565,11 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
         }
 
         case BC_PRINT: {
-            runtime->print(frame.pop(), out);
-            out << "\n";
+            const size_t args_count = imm32(bc);
+            for (size_t arg = 0; arg < args_count; ++arg) {
+                runtime->print(frame.pop(), out);
+                out << (arg + 1 < args_count ? " " : "\n");
+            }
             break;
         }
         }
