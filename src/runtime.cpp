@@ -51,4 +51,3 @@ bool DValue::is_truthy() const {
         return bval;
     throw std::runtime_error("non-boolean value used in boolean context");
 }
-

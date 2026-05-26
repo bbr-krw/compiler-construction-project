@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bytecode.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -18,8 +19,7 @@ struct DValue {
     uint64_t value;
 };
 
-template <typename T>
-struct __attribute__((packed)) Segment {
+template <typename T> struct __attribute__((packed)) Segment {
     size_t capacity;
     T data[0];
 };

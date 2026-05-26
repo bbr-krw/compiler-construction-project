@@ -1,17 +1,18 @@
 #pragma once
 
 #include "sm_runtime.hpp"
+
 #include "bytecode.hpp"
+
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
 
 namespace sm {
 
-template <typename T>
-Segment<T>* make_segment(size_t n) {
+template <typename T> Segment<T>* make_segment(size_t n) {
     size_t segment_size = sizeof(size_t) + n * sizeof(T);
-    auto ptr = new uint8_t[segment_size];
+    auto ptr            = new uint8_t[segment_size];
     return reinterpret_cast<Segment<T>*>(ptr);
 }
 
@@ -34,28 +35,31 @@ DValue* make_bool(bool value) {
 DValue* make_string(const std::string& string) {
     auto segment = make_segment<char>(1 + string.size());
     std::strcpy(segment->data, string.c_str());
-    return new DValue{.type = Type::String, .mark = false, .value = reinterpret_cast<uint64_t>(segment)};
+    return new DValue{
+        .type = Type::String, .mark = false, .value = reinterpret_cast<uint64_t>(segment)};
 }
 
 DValue* make_array(const DArray& elements) {
     auto array = new DArray{elements};
-    return new DValue{.type = Type::Array, .mark = false, .value = reinterpret_cast<uint64_t>(array)};
+    return new DValue{
+        .type = Type::Array, .mark = false, .value = reinterpret_cast<uint64_t>(array)};
 }
 
 DValue* make_tuple(const TupleScheme* scheme, const std::vector<DValue*>& elements) {
     size_t tuple_size = sizeof(DTuple) + elements.size() * sizeof(DValue);
-    auto tuple = reinterpret_cast<DTuple*>(new uint8_t[tuple_size]);
-    tuple->scheme = scheme;
+    auto tuple        = reinterpret_cast<DTuple*>(new uint8_t[tuple_size]);
+    tuple->scheme     = scheme;
     for (size_t i = 0; i < elements.size(); i++) {
         tuple->elements[i] = elements[i];
     }
-    return new DValue{.type = Type::Tuple, .mark = false, .value = reinterpret_cast<uint64_t>(tuple)};
+    return new DValue{
+        .type = Type::Tuple, .mark = false, .value = reinterpret_cast<uint64_t>(tuple)};
 }
 
 DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue*>& captured) {
     size_t func_size = sizeof(DFunc) + captured.size() * sizeof(DValue);
-    auto func = reinterpret_cast<DFunc*>(new uint8_t[func_size]);
-    func->scheme = scheme;
+    auto func        = reinterpret_cast<DFunc*>(new uint8_t[func_size]);
+    func->scheme     = scheme;
     for (size_t i = 0; i < captured.size(); i++) {
         func->capture[i] = captured[i];
     }
@@ -66,7 +70,7 @@ void Runtime::call(DFunc func, size_t return_index, std::vector<DValue*> args, s
     Frame frame;
 
     frame.return_index = return_index;
-    frame.args = args;
+    frame.args         = args;
     frame.locals.resize(locals);
     frame.captured.assign(func.capture, func.capture + func.scheme->capture.size());
 
@@ -166,7 +170,6 @@ void Runtime::print(DValue* value) {
     case Type::Func: {
         std::cout << "__func__";
     }
-
     }
 }
 

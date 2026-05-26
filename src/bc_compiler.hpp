@@ -1,53 +1,52 @@
 #pragma once
 
 #include "ast.hpp"
-#include "runtime.hpp"
 #include "bytecode.hpp"
+#include "runtime.hpp"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <vector>
-#include <map>
 
 namespace sm {
 
 class BcCompiler : public ASTVisitorBase<BcCompiler> {
 
     class Function {
-        public:
-        explicit Function(const std::vector<std::string> &args) {
-            scheme.args_number = 0;
+    public:
+        explicit Function(const std::vector<std::string>& args) {
+            scheme.args_number   = 0;
             scheme.locals_number = 0;
             push_scope();
-            for (auto &arg : args) {
-                var_scopes.back()[arg] = Location{ LocTypes::ARGUMENT, scheme.args_number++ };
+            for (auto& arg : args) {
+                var_scopes.back()[arg] = Location{LocTypes::ARGUMENT, scheme.args_number++};
             }
         }
         sm::FunctionScheme scheme;
-        private:
+
+    private:
         std::vector<std::map<std::string, Location>> var_scopes;
 
-        public:
+    public:
         std::vector<Location> push_scope(std::vector<std::string> predefined_vars = {}) {
             var_scopes.push_back({});
             std::vector<Location> res;
-            for (auto &var : predefined_vars) {
-                auto loc = Location{ LocTypes::LOCAL, scheme.locals_number++ };
+            for (auto& var : predefined_vars) {
+                auto loc               = Location{LocTypes::LOCAL, scheme.locals_number++};
                 var_scopes.back()[var] = loc;
                 res.push_back(loc);
             }
             return res;
         }
-        void pop_scope() {
-            var_scopes.pop_back();
-        }
+        void pop_scope() { var_scopes.pop_back(); }
         std::optional<Location> resolve(std::string name) {
-            for (auto &scope : var_scopes | std::views::reverse) {
+            for (auto& scope : var_scopes | std::views::reverse) {
                 if (scope.contains(name)) {
                     return scope[name];
                 }
@@ -55,12 +54,11 @@ class BcCompiler : public ASTVisitorBase<BcCompiler> {
             return std::nullopt;
         }
         Location addLocal(std::string name) {
-            return var_scopes.back()[name] = Location{ LocTypes::LOCAL, scheme.locals_number++ };
+            return var_scopes.back()[name] = Location{LocTypes::LOCAL, scheme.locals_number++};
         }
         Location addCaptured(std::string name, Location captured_loc) {
             auto location = var_scopes[0][name] = Location{
-                .type = LocTypes::CAPTURED, .index = static_cast<uint16_t>(scheme.capture.size())
-            };
+                .type = LocTypes::CAPTURED, .index = static_cast<uint16_t>(scheme.capture.size())};
             scheme.capture.push_back(captured_loc);
             return location;
         }
@@ -71,16 +69,12 @@ private:
     std::vector<Function> telescope;
     std::vector<Bytecode> code_buff;
 
-    inline Function& curFun() {
-        return telescope.back();
-    }
+    inline Function& curFun() { return telescope.back(); }
 
-    inline void emit(const Bytecode& bc) {
-        code_buff.push_back(bc);
-    }
+    inline void emit(const Bytecode& bc) { code_buff.push_back(bc); }
 
     inline void emit(const std::vector<Bytecode>& bcs) {
-        for (auto &bc : bcs) {
+        for (auto& bc : bcs) {
             emit(bc);
         }
     }
@@ -101,9 +95,8 @@ private:
             return std::nullopt;
         }
 
-        auto parent_location = telescope[frame_index - 1].resolve(name).or_else([&] {
-            return capture(name, frame_index - 1);
-        });
+        auto parent_location = telescope[frame_index - 1].resolve(name).or_else(
+            [&] { return capture(name, frame_index - 1); });
 
         if (not parent_location.has_value()) {
             return std::nullopt;
@@ -152,7 +145,7 @@ public:
     }
 
     void visit(const PrintNode& n) override {
-        for (auto &expr : n.exprs) {
+        for (auto& expr : n.exprs) {
             expr->accept(*this);
             emit(bc_0op(BC_PRINT));
         }
@@ -167,9 +160,7 @@ public:
         }
     }
 
-    void visit(const IntLitNode& n) override {
-        emit(bc_1op(BC_CONST, (uint32_t) n.value));
-    }
+    void visit(const IntLitNode& n) override { emit(bc_1op(BC_CONST, (uint32_t)n.value)); }
 
     void visit(const BodyNode& b) override {
         curFun().push_scope();
@@ -223,19 +214,19 @@ public:
 
     void visit(const BinOpNode& b) override {
         static int32_t binop_reencode[] = {
-            12,     // OR
-            11,     // AND
-            13,     // XOR
-            5,      // LT
-            6,      // LE
-            7,      // GT
-            8,      // GE
-            9,      // EQ
-            10,     // NEQ
-            0,      // ADD
-            1,     // SUB
-            2,     // MUL
-            3,     // DIV
+            12, // OR
+            11, // AND
+            13, // XOR
+            5,  // LT
+            6,  // LE
+            7,  // GT
+            8,  // GE
+            9,  // EQ
+            10, // NEQ
+            0,  // ADD
+            1,  // SUB
+            2,  // MUL
+            3,  // DIV
         };
 
         b.left->accept(*this);
@@ -243,9 +234,7 @@ public:
         emit(bc_1op(BC_BINOP, binop_reencode[static_cast<size_t>(b.op)]));
     }
 
-    void visit(const BoolLitNode& n) override {
-        emit(bc_1op(BC_BOOL, n.value));
-    }
+    void visit(const BoolLitNode& n) override { emit(bc_1op(BC_BOOL, n.value)); }
 
     void visit(const IsNode& n) override {
         static uint32_t type_reencode[] = {
@@ -269,9 +258,7 @@ public:
         emit(bc_0op(BC_STD));
     }
 
-    void visit(const NoneLitNode&) override {
-        emit(bc_0op(BC_NONE));
-    }
+    void visit(const NoneLitNode&) override { emit(bc_0op(BC_NONE)); }
 
     void visit(const ArrayLitNode& ar) override {
         emit(bc_0op(BC_ARRAY));
@@ -305,9 +292,7 @@ public:
         emit(bc_1op(BC_TUPLE, scheme_index));
     }
 
-    void visit(const TupleElemNode&) override {
-        throw std::runtime_error("Unreachable");
-    }
+    void visit(const TupleElemNode&) override { throw std::runtime_error("Unreachable"); }
 
     void visit(const IndexNode& i) override {
         i.base->accept(*this);
@@ -317,7 +302,8 @@ public:
     }
 
     void visit(const DotFieldNode& f) override {
-        size_t index = std::find(bc_file.strings.begin(), bc_file.strings.end(), f.field) - bc_file.strings.begin();
+        size_t index = std::find(bc_file.strings.begin(), bc_file.strings.end(), f.field) -
+                       bc_file.strings.begin();
         if (index == bc_file.strings.size()) {
             bc_file.strings.push_back(f.field);
         }
@@ -327,7 +313,7 @@ public:
     }
 
     void visit(const DotIntNode& i) override {
-        int32_t index = - i.index;
+        int32_t index = -i.index;
         i.base->accept(*this);
         emit(bc_1op(BC_LDT, index));
     }
@@ -356,11 +342,9 @@ public:
             std::vector<Bytecode> then_code = compileIntoCodeBuff(*n.then_body);
             std::vector<Bytecode> else_code = compileIntoCodeBuff(*n.else_body);
 
-            n.cond->accept(*this); // loads boolean pred onto stack
-            int l1_bcindex = code_buff.size()
-                             + 1 // CJMPZ
-                             + then_code.size()
-                             + 1; // JMP
+            n.cond->accept(*this);                   // loads boolean pred onto stack
+            int l1_bcindex = code_buff.size() + 1    // CJMPZ
+                             + then_code.size() + 1; // JMP
             int l2_bcindex = l1_bcindex + else_code.size();
             emit(bc_1op(BC_CJMPZ, l1_bcindex));
             emit(then_code);
@@ -371,9 +355,7 @@ public:
         }
     }
 
-    void visit(const IfShortNode& n) override {
-        compileIfThen(*n.cond, *n.stmt);
-    }
+    void visit(const IfShortNode& n) override { compileIfThen(*n.cond, *n.stmt); }
 
     void compileIfThen(const ASTNode& pred, const ASTNode& then) {
         // if-then-layout
@@ -383,9 +365,8 @@ public:
         // L1:
 
         std::vector<Bytecode> then_code = compileIntoCodeBuff(then);
-        pred.accept(*this); // loads boolean pred onto stack
-        int l1_bcindex = code_buff.size()
-                         + 1 // CJMPZ
+        pred.accept(*this);                   // loads boolean pred onto stack
+        int l1_bcindex = code_buff.size() + 1 // CJMPZ
                          + then_code.size();
         emit(bc_1op(BC_CJMPZ, l1_bcindex));
         emit(then_code);
@@ -404,11 +385,8 @@ public:
         std::vector<Bytecode> pred_code = compileIntoCodeBuff(*n.cond);
 
         int l_entry_bcindex = code_buff.size();
-        int l_exit_bcindex = l_entry_bcindex
-                             + pred_code.size()
-                             + 1 // CJMPZ L_EXIT
-                             + body_code.size()
-                             + 1; // JMP L_ENTRY;
+        int l_exit_bcindex  = l_entry_bcindex + pred_code.size() + 1 // CJMPZ L_EXIT
+                             + body_code.size() + 1;                 // JMP L_ENTRY;
         emit(pred_code);
         emit(bc_1op(BC_CJMPZ, l_exit_bcindex));
         emit(body_code);
@@ -437,25 +415,21 @@ public:
         std::vector<Bytecode> from_code = compileIntoCodeBuff(*n.from);
         std::vector<Bytecode> to_code   = compileIntoCodeBuff(*n.to);
 
-        Location fr_local = curFun().push_scope({n.iter})[0];
+        Location fr_local               = curFun().push_scope({n.iter})[0];
         std::vector<Bytecode> body_code = compileIntoCodeBuff(*n.body);
         curFun().pop_scope();
 
-        int l1_bcindex = code_buff.size()
-                         + from_code.size()
-                         + 1 // ST FR_LOCAL
+        int l1_bcindex = code_buff.size() + from_code.size() + 1 // ST FR_LOCAL
                          + to_code.size();
-        int l2_bcindex = l1_bcindex
-                         + body_code.size()
-                         + 1 // DUP          stack: to, to
-                         + 1 // LD FR_LOCAL  stack: to, to, fr
-                         + 1 // BINOP !=     stack: to, pred
-                         + 1 // CJMPZ L2     stack: to
-                         + 1 // DUP          stack: to, to
-                         + 1 // LD FR_LOCAL  stack: to, to, fr
-                         + 1 // RNGSPC       stack: to, fr*
-                         + 1 // ST FR_LOCAL  stack: to
-                         + 1;// JMP L1
+        int l2_bcindex = l1_bcindex + body_code.size() + 1 // DUP          stack: to, to
+                         + 1                               // LD FR_LOCAL  stack: to, to, fr
+                         + 1                               // BINOP !=     stack: to, pred
+                         + 1                               // CJMPZ L2     stack: to
+                         + 1                               // DUP          stack: to, to
+                         + 1                               // LD FR_LOCAL  stack: to, to, fr
+                         + 1                               // RNGSPC       stack: to, fr*
+                         + 1                               // ST FR_LOCAL  stack: to
+                         + 1;                              // JMP L1
 
         emit(from_code);
         emit(bc_1op(BC_ST, packLock(fr_local)));
@@ -500,20 +474,20 @@ public:
         // L_EXIT:
         // DROP
 
-        std::vector<Bytecode> iter_code   = compileIntoCodeBuff(*n.iterable);
+        std::vector<Bytecode> iter_code = compileIntoCodeBuff(*n.iterable);
 
         Location iter_local, var_local;
         {
             // FIXME ugly local alloc
             auto locals = curFun().push_scope({n.iter, ""});
-            iter_local = locals[0];
-            var_local = locals[1];
+            iter_local  = locals[0];
+            var_local   = locals[1];
         }
         std::vector<Bytecode> body_code = compileIntoCodeBuff(*n.body);
         curFun().pop_scope();
 
         int lentry_bcindex = code_buff.size() + iter_code.size() + 2;
-        int lexit_bcindex = lentry_bcindex + body_code.size() + 14;
+        int lexit_bcindex  = lentry_bcindex + body_code.size() + 14;
 
         emit(iter_code);
         emit(bc_1op(BC_CONST, 0));
