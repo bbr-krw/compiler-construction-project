@@ -416,7 +416,6 @@ public:
     }
 
     void visit(const ForRangeNode& n) override {
-        // TODO: `from > to` case doesn't work! Additional dispatch in loop header needed!
         // for from..to loop layout
         // <from_code>
         // ST FR_LOCAL
@@ -427,10 +426,10 @@ public:
         // LD FR_LOCAL  // stack: to, to, fr
         // BINOP !=     // stack: to, pred
         // CJMPZ L2     // stack: to
-        // LD FR_LOCAL
-        // CONST 1
-        // BINOP +/-
-        // ST FR_LOCAL // stack: to
+        // DUP          // stack: to, to
+        // LD FR_LOCAL  // stack: to, to, fr
+        // RNG_SPEC     // stack: to, fr*
+        // ST FR_LOCAL  // stack: to
         // JMP L1
         // L2:
         // DROP
@@ -452,10 +451,10 @@ public:
                          + 1 // LD FR_LOCAL  stack: to, to, fr
                          + 1 // BINOP !=     stack: to, pred
                          + 1 // CJMPZ L2     stack: to
-                         + 1 // LD FR_LOCAL
-                         + 1 // CONST 1
-                         + 1 // BINOP +
-                         + 1 // ST FR_LOCAL stack: to
+                         + 1 // DUP          stack: to, to
+                         + 1 // LD FR_LOCAL  stack: to, to, fr
+                         + 1 // RNGSPC       stack: to, fr*
+                         + 1 // ST FR_LOCAL  stack: to
                          + 1;// JMP L1
 
         emit(from_code);
@@ -468,9 +467,9 @@ public:
         emit(bc_1op(BC_BINOP, 10)); // !=
         emit(bc_1op(BC_CJMPZ, l2_bcindex));
         // l2:
+        emit(bc_0op(BC_DUP));
         emit(bc_1op(BC_LD, packLock(fr_local)));
-        emit(bc_1op(BC_CONST, 1));
-        emit(bc_1op(BC_BINOP, 0));
+        emit(bc_0op(BC_RNGSPC));
         emit(bc_1op(BC_ST, packLock(fr_local)));
         emit(bc_1op(BC_JMP, l1_bcindex));
         emit(bc_0op(BC_DROP));

@@ -129,6 +129,12 @@ enum BytecodeSignatures : uint8_t {
   // pushes boolean if popped value is type_id
   BC_ISTYPE   = 27,
 
+  // ioperands: none
+  // stack operands: iterable, target
+  // pushes modified iterable (iterable + 1 in case if iterable <= target, iterable - 1 otherwise)
+  // used by range-based loops
+  BC_RNGSPC   = 28,
+
   // ioperands: bytecode_index
   // stack operands: condition
   // jumps if condition truthy
@@ -301,7 +307,8 @@ struct BcFile {
           case BC_RET:     os << "RET\n"; break;
           case BC_DROP:    os << "DROP\n"; break;
           case BC_DUP:     os << "DUP\n"; break;
-          case BC_CJMPZ:    os << "CJMPZ -> " << imm32(bc) << "\n"; break;
+          case BC_RNGSPC:  os << "RNGSPC\n"; break;
+          case BC_CJMPZ:   os << "CJMPZ -> " << imm32(bc) << "\n"; break;
           case BC_CLOSURE: os << "CLOSURE #" << imm32(bc) << "\n"; break;
           case BC_CALLC:   os << "CALLC args=" << imm32(bc) << "\n"; break;
           case BC_PRINT:   os << "PRINT\n"; break;

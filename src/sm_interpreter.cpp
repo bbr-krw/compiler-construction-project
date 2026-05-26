@@ -464,6 +464,18 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
             break;
         }
 
+        case BC_RNGSPC: {
+            DValue* iterable = frame.pop();
+            DValue* target = frame.pop();
+            if (target->type != Type::Int || iterable->type != Type::Int) {
+                throw std::runtime_error("unexpected type for range limits");
+            }
+            int iterable_v = iterable->value;
+            int target_v = target->value;
+            frame.push(make_int(iterable_v <= target_v ? iterable_v + 1 : iterable_v - 1));
+            break;
+        }
+
         case BC_CJMPZ: {
             DValue* condition = frame.pop();
             if (condition->type != Type::Bool) {
