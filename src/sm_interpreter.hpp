@@ -4,6 +4,6 @@
 
 namespace sm {
 
-void interprete(Runtime* runtime, const BcFile& bcFile);
+void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out);
 
 } // namespace sm

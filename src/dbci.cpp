@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
     try {
         std::println(stderr, "Running SM interpreter");
         sm::Runtime runtime;
-        sm::interprete(&runtime, bc_file);
+        sm::interprete(&runtime, bc_file, std::cerr);
     } catch (const std::exception& ex) {
         std::println(stderr, "Runtime error: {}", ex.what());
         return 3;

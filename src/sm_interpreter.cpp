@@ -81,7 +81,7 @@ DValue* concat(DValue* first, DValue* second) {
     }
 }
 
-void interprete(Runtime* runtime, const BcFile& bcFile) {
+void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
     DValue* return_value;
 
     Frame initial_frame;
@@ -565,8 +565,8 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         }
 
         case BC_PRINT: {
-            runtime->print(frame.pop());
-            std::cout << "\n";
+            runtime->print(frame.pop(), out);
+            out << "\n";
             break;
         }
         }

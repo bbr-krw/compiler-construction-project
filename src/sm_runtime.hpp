@@ -65,7 +65,7 @@ struct Runtime {
     std::vector<Frame> stack;
 
     void call(DFunc func, size_t return_index, std::vector<DValue*> args, size_t locals);
-    void print(DValue* value);
+    void print(DValue* value, std::ostream& out);
 };
 
 } // namespace sm

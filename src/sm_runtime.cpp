@@ -101,74 +101,74 @@ DValue*& Frame::operator[](Location loc) {
     }
 }
 
-void Runtime::print(DValue* value) {
+void Runtime::print(DValue* value, std::ostream& os) {
     switch (value->type) {
     case Type::None: {
-        std::cout << "none";
+        os << "none";
         break;
     }
 
     case Type::Int: {
-        std::cout << static_cast<int>(value->value);
+        os << static_cast<int>(value->value);
         break;
     }
 
     case Type::Real: {
-        std::cout << raw_to_float(value->value);
+        os << raw_to_float(value->value);
         break;
     }
 
     case Type::Bool: {
         if (value->value) {
-            std::cout << "true";
+            os << "true";
         } else {
-            std::cout << "false";
+            os << "false";
         }
         break;
     }
 
     case Type::String: {
         auto string = reinterpret_cast<DString*>(value->value);
-        std::cout << string->data;
+        os << string->data;
         break;
     }
 
     case Type::Array: {
         auto array = reinterpret_cast<DArray*>(value->value);
-        std::cout << "[";
+        os << "[";
         size_t i = 0;
         for (const auto& [key, value] : *array) {
             if (i > 0) {
-                std::cout << ", ";
+                os << ", ";
             }
             i++;
-            std::cout << key << ":";
-            print(value);
+            os << key << ":";
+            print(value, os);
         }
-        std::cout << "]";
+        os << "]";
         break;
     }
 
     case Type::Tuple: {
         auto tuple = reinterpret_cast<DTuple*>(value->value);
-        std::cout << "{";
+        os << "{";
         for (size_t i = 0; i < tuple->scheme->field_names.size(); i++) {
             if (i > 0) {
-                std::cout << ", ";
+                os << ", ";
             }
 
             if (tuple->scheme->field_names[i].has_value()) {
-                std::cout << tuple->scheme->field_names[i].value();
-                std::cout << "=";
+                os << tuple->scheme->field_names[i].value();
+                os << "=";
             }
-            print(tuple->elements[i]);
+            print(tuple->elements[i], os);
         }
-        std::cout << "}";
+        os << "}";
         break;
     }
 
     case Type::Func: {
-        std::cout << "__func__";
+        os << "__func__";
     }
     }
 }
