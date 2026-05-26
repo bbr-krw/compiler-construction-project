@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <stdexcept>
 #include <vector>
 #include <map>
@@ -17,28 +18,51 @@ namespace sm {
 
 class BcCompiler : public ASTVisitorBase<BcCompiler> {
 
-    struct Function {
+    class Function {
+        public:
         explicit Function(const std::vector<std::string> &args) {
             scheme.args_number = 0;
             scheme.locals_number = 0;
+            push_scope();
             for (auto &arg : args) {
-                addArg(arg);
+                var_scopes.back()[arg] = Location{ LocTypes::ARGUMENT, scheme.args_number++ };
             }
         }
         sm::FunctionScheme scheme;
-        std::map<std::string, Location> var_scope;
-        std::optional<Location> resolve(std::string name) {
-            if (var_scope.contains(name)) {
-                return var_scope[name];
-            } else {
-                return std::nullopt;
+        private:
+        std::vector<std::map<std::string, Location>> var_scopes;
+
+        public:
+        std::vector<Location> push_scope(std::vector<std::string> predefined_vars = {}) {
+            var_scopes.push_back({});
+            std::vector<Location> res;
+            for (auto &var : predefined_vars) {
+                auto loc = Location{ LocTypes::LOCAL, scheme.locals_number++ };
+                var_scopes.back()[var] = loc;
+                res.push_back(loc);
             }
+            return res;
+        }
+        void pop_scope() {
+            var_scopes.pop_back();
+        }
+        std::optional<Location> resolve(std::string name) {
+            for (auto &scope : var_scopes | std::views::reverse) {
+                if (scope.contains(name)) {
+                    return scope[name];
+                }
+            }
+            return std::nullopt;
         }
         Location addLocal(std::string name) {
-            return var_scope[name] = Location{ LocTypes::LOCAL, scheme.locals_number++ };
+            return var_scopes.back()[name] = Location{ LocTypes::LOCAL, scheme.locals_number++ };
         }
-        Location addArg(std::string name) {
-            return var_scope[name] = Location{ LocTypes::ARGUMENT, scheme.args_number++ };
+        Location addCaptured(std::string name, Location captured_loc) {
+            auto location = var_scopes[0][name] = Location{
+                .type = LocTypes::CAPTURED, .index = static_cast<uint16_t>(scheme.capture.size())
+            };
+            scheme.capture.push_back(captured_loc);
+            return location;
         }
     };
 
@@ -61,11 +85,11 @@ private:
         }
     }
 
-    inline void telescope_push(const std::vector<std::string>& args) {
+    inline void func_push(const std::vector<std::string>& args) {
         telescope.push_back(Function{args});
     }
 
-    inline int telescope_pop() {
+    inline int func_pop() {
         telescope.back().scheme.code = code_buff;
         bc_file.functions.push_back(telescope.back().scheme);
         telescope.pop_back();
@@ -85,14 +109,7 @@ private:
             return std::nullopt;
         }
 
-        auto& captured = telescope[frame_index].scheme.capture;
-
-        auto location = telescope[frame_index].var_scope[name] = Location{
-            .type = LocTypes::CAPTURED, .index = static_cast<uint16_t>(captured.size())
-        };
-        telescope[frame_index].scheme.capture.push_back(parent_location.value());
-
-        return location;
+        return telescope[frame_index].addCaptured(name, parent_location.value());
     }
 
 public:
@@ -113,12 +130,12 @@ public:
     }
 
     void visit(const ProgramNode& n) override {
-        telescope_push({}); // main is a function without args
+        func_push({}); // main is a function without args
 
         for (const auto& s : n.stmts)
             s->accept(*this);
 
-        bc_file.main_function_index = telescope_pop();
+        bc_file.main_function_index = func_pop();
     }
 
     void visit(const VarDeclNode& n) override {
@@ -155,9 +172,11 @@ public:
     }
 
     void visit(const BodyNode& b) override {
+        curFun().push_scope();
         for (const auto& stmt : b.stmts) {
             stmt->accept(*this);
         }
+        curFun().pop_scope();
     }
 
     void visit(const FuncLitNode& fn) override {
@@ -397,10 +416,67 @@ public:
     }
 
     void visit(const ForRangeNode& n) override {
-        // TODO: introduce scopes!
-    }
-    // void visit(const ForIterNode&) override;
+        // TODO: `from > to` case doesn't work! Additional dispatch in loop header needed!
+        // for from..to loop layout
+        // <from_code>
+        // ST FR_LOCAL
+        // <to_code>    // stack: to
+        // L1:
+        // <body_code>  // stack: to
+        // DUP          // stack: to, to
+        // LD FR_LOCAL  // stack: to, to, fr
+        // BINOP !=     // stack: to, pred
+        // CJMPZ L2     // stack: to
+        // LD FR_LOCAL
+        // CONST 1
+        // BINOP +/-
+        // ST FR_LOCAL // stack: to
+        // JMP L1
+        // L2:
+        // DROP
 
+        std::vector<Bytecode> from_code = compileIntoCodeBuff(*n.from);
+        std::vector<Bytecode> to_code   = compileIntoCodeBuff(*n.to);
+
+        Location fr_local = curFun().push_scope({n.iter})[0];
+        std::vector<Bytecode> body_code = compileIntoCodeBuff(*n.body);
+        curFun().pop_scope();
+
+        int l1_bcindex = code_buff.size()
+                         + from_code.size()
+                         + 1 // ST FR_LOCAL
+                         + to_code.size();
+        int l2_bcindex = l1_bcindex
+                         + body_code.size()
+                         + 1 // DUP          stack: to, to
+                         + 1 // LD FR_LOCAL  stack: to, to, fr
+                         + 1 // BINOP !=     stack: to, pred
+                         + 1 // CJMPZ L2     stack: to
+                         + 1 // LD FR_LOCAL
+                         + 1 // CONST 1
+                         + 1 // BINOP +
+                         + 1 // ST FR_LOCAL stack: to
+                         + 1;// JMP L1
+
+        emit(from_code);
+        emit(bc_1op(BC_ST, packLock(fr_local)));
+        emit(to_code);
+        // l1:
+        emit(body_code);
+        emit(bc_0op(BC_DUP));
+        emit(bc_1op(BC_LD, packLock(fr_local)));
+        emit(bc_1op(BC_BINOP, 10)); // !=
+        emit(bc_1op(BC_CJMPZ, l2_bcindex));
+        // l2:
+        emit(bc_1op(BC_LD, packLock(fr_local)));
+        emit(bc_1op(BC_CONST, 1));
+        emit(bc_1op(BC_BINOP, 0));
+        emit(bc_1op(BC_ST, packLock(fr_local)));
+        emit(bc_1op(BC_JMP, l1_bcindex));
+        emit(bc_0op(BC_DROP));
+    }
+
+    // void visit(const ForIterNode&) override;
     // void visit(const LoopInfNode&) override;
     // void visit(const ExitNode&) override;
 
