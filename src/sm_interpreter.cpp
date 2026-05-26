@@ -26,7 +26,7 @@ DValue* concat(DValue* first, DValue* second) {
     case Type::Bool:
     case Type::Func:
         throw std::runtime_error("unsupported type for concatenation");
-    
+
     case Type::String: {
         DString* first_str = reinterpret_cast<DString*>(first->value);
         DString* second_str = reinterpret_cast<DString*>(second->value);
@@ -82,7 +82,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
     DValue* return_value;
 
     Frame initial_frame;
-    
+
     const auto* main_scheme = &bcFile.functions[bcFile.main_function_index];
     initial_frame.scheme = main_scheme;
     initial_frame.return_index = std::numeric_limits<size_t>::max();
@@ -94,7 +94,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
     runtime->stack.push_back(initial_frame);
 
     size_t bc_index = 0;
-    
+
     while (true) {
         if (runtime->stack.empty()) {
             break;
@@ -107,6 +107,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         Bytecode bc = frame.scheme->code[bc_index];
         bool jumped = false;
+        // std::cerr << "HERE: " << bc_index << ' ' << frame.stack.size() << '\n';
 
         switch (static_cast<BytecodeSignatures>(bc & 0xff)) {
         case BC_BINOP: {
@@ -440,7 +441,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         case BC_RET: {
             return_value = frame.pop();
-            
+
             bc_index = frame.return_index;
             jumped = true;
 
@@ -465,14 +466,37 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
         }
 
         case BC_RNGSPC: {
-            DValue* iterable = frame.pop();
+            DValue* iterator = frame.pop();
             DValue* target = frame.pop();
-            if (target->type != Type::Int || iterable->type != Type::Int) {
+            if (target->type != Type::Int || iterator->type != Type::Int) {
                 throw std::runtime_error("unexpected type for range limits");
             }
-            int iterable_v = iterable->value;
+            int iterable_v = iterator->value;
             int target_v = target->value;
             frame.push(make_int(iterable_v <= target_v ? iterable_v + 1 : iterable_v - 1));
+            break;
+        }
+
+        case BC_LENGTH: {
+            DValue* iterable = frame.pop();
+            switch (iterable->type) {
+                case Type::Array: {
+                    DArray* arr = reinterpret_cast<DArray*>(iterable->value);
+                    frame.push(make_int(arr->size()));
+                    break;
+                }
+                case Type::Tuple: {
+                    DTuple* tup = reinterpret_cast<DTuple*>(iterable->value);
+                    frame.push(make_int(tup->scheme->field_names.size()));
+                    break;
+                }
+                case Type::String: {
+                    DString* str = reinterpret_cast<DString*>(iterable->value);
+                    frame.push(make_int(str->capacity));
+                    break;
+                }
+                default: throw std::runtime_error("non iterable object doen't have length");
+            }
             break;
         }
 
@@ -491,12 +515,12 @@ void interprete(Runtime* runtime, const BcFile& bcFile) {
 
         case BC_CLOSURE: {
             const FunctionScheme* scheme = &bcFile.functions[imm32(bc)];
-            
+
             std::vector<DValue*> captured;
             for (size_t i = 0; i < scheme->capture.size(); i++) {
                 captured.push_back(frame[scheme->capture[i]]);
             }
-            
+
             DValue* func = make_function(scheme, captured);
             frame.push(func);
             break;

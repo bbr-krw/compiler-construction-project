@@ -475,10 +475,72 @@ public:
         emit(bc_0op(BC_DROP));
     }
 
-    // void visit(const ForIterNode&) override;
+    void visit(const ForIterNode& n) override {
+        // TODO make it work for tuples. (now we don't have suitable bytecode for it)
+        // for var in iterable loop layout
+        // <iter_code>
+        // CONST 0
+        // ST ITER_LOCAL      stack: iterable
+        // L_ENTRY:
+        // DUP                stack: iterable, iterable
+        // LENGTH             stack: iterable, length
+        // LD ITER_LOCAL      stack: iterable, length, iter
+        // BINOP !=           stack: iterable, exit_pred
+        // CJMPZ L_EXIT
+        // DUP                stack: iterable, iterable
+        // LD ITER_LOCAL      stack: iterable, iterable, iter
+        // LDA                stack: iterable, elem
+        // ST VAR_LOCAL       stack: iterable
+        // <body_code>
+        // LD ITER_LOCAL
+        // CONST 0
+        // BINOP +
+        // ST ITER_LOCAL
+        // JMP L_ENTRY
+        // L_EXIT:
+        // DROP
+
+        std::vector<Bytecode> iter_code   = compileIntoCodeBuff(*n.iterable);
+
+        Location iter_local, var_local;
+        {
+            // FIXME ugly local alloc
+            auto locals = curFun().push_scope({n.iter, ""});
+            iter_local = locals[0];
+            var_local = locals[1];
+        }
+        std::vector<Bytecode> body_code = compileIntoCodeBuff(*n.body);
+        curFun().pop_scope();
+
+        int lentry_bcindex = code_buff.size() + iter_code.size() + 2;
+        int lexit_bcindex = lentry_bcindex + body_code.size() + 14;
+
+        emit(iter_code);
+        emit(bc_1op(BC_CONST, 0));
+        emit(bc_1op(BC_ST, packLock(iter_local)));
+        // lentry:
+        emit(bc_0op(BC_DUP));
+        emit(bc_0op(BC_LENGTH));
+        emit(bc_1op(BC_LD, packLock(iter_local)));
+        emit(bc_1op(BC_BINOP, 10)); // !=
+        emit(bc_1op(BC_CJMPZ, lexit_bcindex));
+        emit(bc_0op(BC_DUP));
+        emit(bc_1op(BC_LD, packLock(iter_local)));
+        emit(bc_0op(BC_LDA));
+        emit(bc_1op(BC_ST, packLock(var_local)));
+        emit(body_code);
+        emit(bc_1op(BC_LD, packLock(iter_local)));
+        emit(bc_1op(BC_CONST, 1));
+        emit(bc_1op(BC_BINOP, 0)); // +
+        emit(bc_1op(BC_ST, packLock(iter_local)));
+        emit(bc_1op(BC_JMP, lentry_bcindex));
+        // lexit:
+        emit(bc_0op(BC_DROP));
+    }
+
     // void visit(const LoopInfNode&) override;
     // void visit(const ExitNode&) override;
-
+    // TODO: unary operators support
 };
 
 } // namespace sm
