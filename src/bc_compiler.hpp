@@ -517,22 +517,22 @@ public:
 
     void visit(const UnaryOpNode& n) override {
         switch (n.op) {
-            case UnaryOpNode::Op::UPLUS: {
-                n.operand->accept(*this);
-                break;
-            }
-            case UnaryOpNode::Op::UMINUS: {
-                emit(bc_1op(BC_CONST, 0));
-                n.operand->accept(*this);
-                emit(bc_1op(BC_BINOP, 1)); // -;
-                break;
-            }
-            case UnaryOpNode::Op::NOT: {
-                emit(bc_1op(BC_BOOL, 1));
-                n.operand->accept(*this);
-                emit(bc_1op(BC_BINOP, 13)); // ^;
-                break;
-            }
+        case UnaryOpNode::Op::UPLUS: {
+            n.operand->accept(*this);
+            break;
+        }
+        case UnaryOpNode::Op::UMINUS: {
+            emit(bc_1op(BC_CONST, 0));
+            n.operand->accept(*this);
+            emit(bc_1op(BC_BINOP, 1)); // -;
+            break;
+        }
+        case UnaryOpNode::Op::NOT: {
+            emit(bc_1op(BC_BOOL, 1));
+            n.operand->accept(*this);
+            emit(bc_1op(BC_BINOP, 13)); // ^;
+            break;
+        }
         }
     }
 };
