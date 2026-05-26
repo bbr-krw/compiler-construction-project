@@ -44,11 +44,13 @@ DValue* concat(DValue* first, DValue* second) {
         DArray* second_arr = reinterpret_cast<DArray*>(second->value);
 
         DArray array;
+        int first_arr_max_key = std::numeric_limits<int>::min();
         for (const auto& [key, value] : *first_arr) {
             array.emplace(key, value);
+            first_arr_max_key = std::max(first_arr_max_key, key);
         }
         for (const auto& [key, value] : *second_arr) {
-            array.emplace(key, value);
+            array.emplace(key + first_arr_max_key, value);
         }
 
         return make_array(array);
