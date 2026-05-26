@@ -84,7 +84,6 @@ private:
     }
 
     inline int func_pop() {
-        telescope.back().scheme.code = code_buff;
         bc_file.functions.push_back(telescope.back().scheme);
         telescope.pop_back();
         return bc_file.functions.size() - 1;
@@ -128,6 +127,7 @@ public:
         for (const auto& s : n.stmts)
             s->accept(*this);
 
+        telescope.back().scheme.code = std::move(code_buff);
         bc_file.main_function_index = func_pop();
     }
 
@@ -178,14 +178,9 @@ public:
             args.push_back(arg->ident_name);
         }
 
-        telescope.push_back(Function(args));
-
-        fn.body->accept(*this);
-
-        bc_file.functions.push_back(telescope.back().scheme);
-        telescope.pop_back();
-
-        emit(bc_1op(BC_CLOSURE, bc_file.functions.size() - 1));
+        func_push(args);
+        telescope.back().scheme.code = compileIntoCodeBuff(*fn.body);
+        emit(bc_1op(BC_CLOSURE, func_pop()));
     }
 
     void visit(const CallNode& call) override {
@@ -512,8 +507,12 @@ public:
         emit(bc_0op(BC_DROP));
     }
 
-    // void visit(const LoopInfNode&) override;
-    // void visit(const ExitNode&) override;
+    void visit(const LoopInfNode&) override {
+        throw std::runtime_error("unimplemented loop inf");
+    }
+    void visit(const ExitNode&) override {
+        throw std::runtime_error("unimplemented loop exit");
+    }
 
     void visit(const UnaryOpNode& n) override {
         switch (n.op) {
