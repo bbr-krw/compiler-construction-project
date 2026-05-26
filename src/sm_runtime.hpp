@@ -7,7 +7,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 namespace sm {
@@ -26,7 +26,7 @@ template <typename T> struct __attribute__((packed)) Segment {
 
 using DString = Segment<char>;
 
-using DArray = std::unordered_map<int, DValue*>;
+using DArray = std::map<int, DValue*>;
 
 struct DTuple {
     const TupleScheme* scheme;

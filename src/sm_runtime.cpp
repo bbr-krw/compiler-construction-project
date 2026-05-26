@@ -142,7 +142,7 @@ void Runtime::print(DValue* value, std::ostream& os) {
                 os << ", ";
             }
             i++;
-            os << key << ":";
+            // os << key << ":";
             print(value, os);
         }
         os << "]";
