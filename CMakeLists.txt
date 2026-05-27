@@ -43,6 +43,9 @@ add_library(lexer_lib
     src/print_visitor.cpp
     src/token_dump.cpp
     src/semantic_analyzer.cpp
+    src/sm_interpreter.cpp
+    src/sm_runtime.cpp
+    src/bytecode.cpp
 )
 
 target_include_directories(lexer_lib
@@ -180,7 +183,7 @@ else()
     message(STATUS "clang-format not found; 'format' and 'format-check' targets unavailable")
 endif()
 
-# ── Interpreter ────────────────────────────────────────────────────────────────
+# ── Tree Interpreter (dinterp) ────────────────────────────────────────────────
 target_sources(lexer_lib PRIVATE src/interpreter.cpp)
 
 add_executable(dinterp src/dinterp.cpp)
@@ -194,3 +197,23 @@ target_link_libraries(interp_suite_tests PRIVATE GTest::gtest GTest::gtest_main 
 target_include_directories(interp_suite_tests PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(interp_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
 add_test(NAME InterpSuiteTests COMMAND interp_suite_tests)
+
+# ── Bytecode Compiler ────────────────────────────────────────────────────────────
+add_executable(dbc src/dbc.cpp src/bytecode.cpp)
+target_link_libraries(dbc PRIVATE lexer_lib)
+target_include_directories(dbc PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_options(dbc PRIVATE -Wall -Wextra)
+
+# ── SM interpreter  ──────────────────────────────────────────────────────────────
+add_executable(dbci src/dbci.cpp src/sm_interpreter.cpp src/sm_runtime.cpp src/bytecode.cpp)
+target_link_libraries(dbci PRIVATE lexer_lib)
+target_include_directories(dbci PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
+target_compile_options(dbci PRIVATE -Wall -Wextra)
+
+# ── SM interpreter suite tests ────────────────────────────────────────────────────
+# add_executable(dbci_suite_tests test/dbci_suite_test.cpp)
+# target_link_libraries(dbci_suite_tests PRIVATE GTest::gtest GTest::gtest_main lexer_lib)
+# target_include_directories(dbci_suite_tests PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
+# target_compile_definitions(dbci_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
+# add_test(NAME dbciSuiteTests COMMAND dbci_suite_tests)
+

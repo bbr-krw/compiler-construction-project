@@ -3,3 +3,4 @@
 .cache/**
 .vscode/**
 build/**
+.gdb_history
