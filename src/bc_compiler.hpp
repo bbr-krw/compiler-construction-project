@@ -74,8 +74,18 @@ private:
     inline void emit(const Bytecode& bc) { code_buff.push_back(bc); }
 
     inline void emit(const std::vector<Bytecode>& bcs) {
-        for (auto& bc : bcs) {
-            emit(bc);
+        int code_offset = code_buff.size();
+        for (auto bc : bcs) {
+            BytecodeSignatures bc_sig = static_cast<BytecodeSignatures>(bc & 0xff);
+            switch (bc_sig) {
+            case BC_CJMPZ:
+            case BC_JMP:
+                // fix label offsets
+                // TODO: make it less ugly, (LABEL immediate bytecode mb)
+                bc = bc_1op(bc_sig, imm32(bc) + code_offset);
+            default:
+                emit(bc);
+            }
         }
     }
 
@@ -401,7 +411,7 @@ public:
         // CJMPZ L2     // stack: to
         // DUP          // stack: to, to
         // LD FR_LOCAL  // stack: to, to, fr
-        // RNG_SPEC     // stack: to, fr*
+        // RNGSPC       // stack: to, fr*
         // ST FR_LOCAL  // stack: to
         // JMP L1
         // L2:
