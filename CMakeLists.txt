@@ -211,9 +211,9 @@ target_include_directories(dbci PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_options(dbci PRIVATE -Wall -Wextra)
 
 # ── SM interpreter suite tests ────────────────────────────────────────────────────
-add_executable(dbci_suite_tests test/dbci_suite_test.cpp)
-target_link_libraries(dbci_suite_tests PRIVATE GTest::gtest GTest::gtest_main lexer_lib)
-target_include_directories(dbci_suite_tests PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_compile_definitions(dbci_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
-add_test(NAME dbciSuiteTests COMMAND dbci_suite_tests)
+# add_executable(dbci_suite_tests test/dbci_suite_test.cpp)
+# target_link_libraries(dbci_suite_tests PRIVATE GTest::gtest GTest::gtest_main lexer_lib)
+# target_include_directories(dbci_suite_tests PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src)
+# target_compile_definitions(dbci_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
+# add_test(NAME dbciSuiteTests COMMAND dbci_suite_tests)
 

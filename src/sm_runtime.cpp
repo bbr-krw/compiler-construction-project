@@ -68,9 +68,12 @@ DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue**>&
 
 float get_float(const DValue& value) {
     switch (value.type) {
-        case Type::Int: return static_cast<int>(value.value);
-        case Type::Real: return raw_to_float(value.value);
-        default: throw std::runtime_error("can't case value to float");
+    case Type::Int:
+        return static_cast<int>(value.value);
+    case Type::Real:
+        return raw_to_float(value.value);
+    default:
+        throw std::runtime_error("can't case value to float");
     }
 }
 

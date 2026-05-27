@@ -5,9 +5,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <map>
 #include <stdexcept>
 #include <string>
-#include <map>
 #include <vector>
 
 namespace sm {

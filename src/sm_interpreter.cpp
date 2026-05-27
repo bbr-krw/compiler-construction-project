@@ -525,7 +525,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
             const FunctionScheme* scheme = &bcFile.functions[imm32(bc)];
 
             std::vector<DValue**> captured;
-            for (auto &loc : scheme->capture) {
+            for (auto& loc : scheme->capture) {
                 captured.push_back(&frame[loc]);
             }
 

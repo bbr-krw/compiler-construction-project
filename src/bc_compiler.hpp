@@ -138,7 +138,7 @@ public:
             s->accept(*this);
 
         telescope.back().scheme.code = std::move(code_buff);
-        bc_file.main_function_index = func_pop();
+        bc_file.main_function_index  = func_pop();
     }
 
     void visit(const VarDeclNode& n) override {
@@ -485,8 +485,8 @@ public:
         {
             // FIXME ugly local alloc
             auto locals = curFun().push_scope({n.iter, ""});
-            var_local  = locals[0];
-            iter_local = locals[1];
+            var_local   = locals[0];
+            iter_local  = locals[1];
         }
         std::vector<Bytecode> body_code = compileIntoCodeBuff(*n.body);
         curFun().pop_scope();
@@ -517,12 +517,8 @@ public:
         emit(bc_0op(BC_DROP));
     }
 
-    void visit(const LoopInfNode&) override {
-        throw std::runtime_error("unimplemented loop inf");
-    }
-    void visit(const ExitNode&) override {
-        throw std::runtime_error("unimplemented loop exit");
-    }
+    void visit(const LoopInfNode&) override { throw std::runtime_error("unimplemented loop inf"); }
+    void visit(const ExitNode&) override { throw std::runtime_error("unimplemented loop exit"); }
 
     void visit(const UnaryOpNode& n) override {
         switch (n.op) {
