@@ -467,14 +467,14 @@ public:
         // BINOP !=           stack: iterable, exit_pred
         // CJMPZ L_EXIT
         // DUP                stack: iterable, iterable
-        // LD ITER_LOCAL      stack: iterable, iterable, iter
-        // LDA                stack: iterable, elem
-        // ST VAR_LOCAL       stack: iterable
-        // <body_code>
         // LD ITER_LOCAL
         // CONST 0
         // BINOP +
         // ST ITER_LOCAL
+        // LD ITER_LOCAL      stack: iterable, iterable, iter
+        // LDA                stack: iterable, elem
+        // ST VAR_LOCAL       stack: iterable
+        // <body_code>
         // JMP L_ENTRY
         // L_EXIT:
         // DROP
@@ -485,8 +485,8 @@ public:
         {
             // FIXME ugly local alloc
             auto locals = curFun().push_scope({n.iter, ""});
-            iter_local  = locals[0];
-            var_local   = locals[1];
+            var_local  = locals[0];
+            iter_local = locals[1];
         }
         std::vector<Bytecode> body_code = compileIntoCodeBuff(*n.body);
         curFun().pop_scope();
@@ -505,13 +505,13 @@ public:
         emit(bc_1op(BC_CJMPZ, lexit_bcindex));
         emit(bc_0op(BC_DUP));
         emit(bc_1op(BC_LD, packLock(iter_local)));
-        emit(bc_0op(BC_LDA));
-        emit(bc_1op(BC_ST, packLock(var_local)));
-        emit(body_code);
-        emit(bc_1op(BC_LD, packLock(iter_local)));
         emit(bc_1op(BC_CONST, 1));
         emit(bc_1op(BC_BINOP, 0)); // +
         emit(bc_1op(BC_ST, packLock(iter_local)));
+        emit(bc_1op(BC_LD, packLock(iter_local)));
+        emit(bc_0op(BC_LDA));
+        emit(bc_1op(BC_ST, packLock(var_local)));
+        emit(body_code);
         emit(bc_1op(BC_JMP, lentry_bcindex));
         // lexit:
         emit(bc_0op(BC_DROP));
