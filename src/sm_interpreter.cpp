@@ -93,7 +93,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
     initial_frame.return_index = std::numeric_limits<size_t>::max();
     initial_frame.captured     = {};
     initial_frame.args         = {};
-    initial_frame.locals.assign(main_scheme->locals_number, new DValue{});
+    initial_frame.locals.assign(main_scheme->locals_number, new DValue());
     initial_frame.stack = {};
 
     runtime->stack.push_back(initial_frame);
@@ -524,9 +524,9 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
         case BC_CLOSURE: {
             const FunctionScheme* scheme = &bcFile.functions[imm32(bc)];
 
-            std::vector<DValue*> captured;
-            for (size_t i = 0; i < scheme->capture.size(); i++) {
-                captured.push_back(frame[scheme->capture[i]]);
+            std::vector<DValue**> captured;
+            for (auto &loc : scheme->capture) {
+                captured.push_back(&frame[loc]);
             }
 
             DValue* func = make_function(scheme, captured);
@@ -549,7 +549,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
             new_frame.return_index = bc_index + 1;
             new_frame.captured.assign(raw_func->capture,
                                       raw_func->capture + raw_func->scheme->capture.size());
-            new_frame.locals.resize(raw_func->scheme->locals_number);
+            new_frame.locals.resize(raw_func->scheme->locals_number, new DValue());
 
             if (args_count != raw_func->scheme->args_number) {
                 throw std::runtime_error("Function called with invalid args number");

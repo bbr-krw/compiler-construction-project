@@ -56,8 +56,8 @@ DValue* make_tuple(const TupleScheme* scheme, const std::vector<DValue*>& elemen
         .type = Type::Tuple, .mark = false, .value = reinterpret_cast<uint64_t>(tuple)};
 }
 
-DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue*>& captured) {
-    size_t func_size = sizeof(DFunc) + captured.size() * sizeof(DValue);
+DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue**>& captured) {
+    size_t func_size = sizeof(DFunc) + captured.size() * sizeof(DValue**);
     auto func        = reinterpret_cast<DFunc*>(new uint8_t[func_size]);
     func->scheme     = scheme;
     for (size_t i = 0; i < captured.size(); i++) {
@@ -72,17 +72,6 @@ float get_float(const DValue& value) {
         case Type::Real: return raw_to_float(value.value);
         default: throw std::runtime_error("can't case value to float");
     }
-}
-
-void Runtime::call(DFunc func, size_t return_index, std::vector<DValue*> args, size_t locals) {
-    Frame frame;
-
-    frame.return_index = return_index;
-    frame.args         = args;
-    frame.locals.resize(locals);
-    frame.captured.assign(func.capture, func.capture + func.scheme->capture.size());
-
-    stack.push_back(frame);
 }
 
 void Frame::push(DValue* value) {
@@ -104,7 +93,7 @@ DValue*& Frame::operator[](Location loc) {
         return args[loc.index];
     }
     case CAPTURED: {
-        return captured[loc.index];
+        return *captured[loc.index];
     }
     }
 }
