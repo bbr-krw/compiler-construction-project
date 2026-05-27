@@ -142,8 +142,9 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
                 }
 
                 if (first->type == Type::Real || second->type == Type::Real) {
-                    const auto first_arg  = static_cast<double>(first->value);
-                    const auto second_arg = static_cast<double>(second->value);
+                    const auto first_arg  = get_float(*first);
+                    const auto second_arg = get_float(*second);
+                    std::cerr << first_arg << ' ' << second_arg << '\n';
 
                     switch (op) {
                         CASE_BINOP(0, +, make_real)

@@ -47,6 +47,8 @@ DValue* make_array(const DArray& elements);
 DValue* make_tuple(const TupleScheme* scheme, const std::vector<DValue*>& elements);
 DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue*>& captured);
 
+float get_float(const DValue& value);
+
 struct Frame {
     const FunctionScheme* scheme;
     size_t return_index;

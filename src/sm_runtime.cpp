@@ -66,6 +66,14 @@ DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue*>& 
     return new DValue{.type = Type::Func, .mark = false, .value = reinterpret_cast<uint64_t>(func)};
 }
 
+float get_float(const DValue& value) {
+    switch (value.type) {
+        case Type::Int: return static_cast<int>(value.value);
+        case Type::Real: return raw_to_float(value.value);
+        default: throw std::runtime_error("can't case value to float");
+    }
+}
+
 void Runtime::call(DFunc func, size_t return_index, std::vector<DValue*> args, size_t locals) {
     Frame frame;
 
