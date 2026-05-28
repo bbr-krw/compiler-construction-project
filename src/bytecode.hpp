@@ -24,7 +24,7 @@ struct Location {
 
 std::ostream& operator<<(std::ostream& os, const Location& loc);
 
-enum class Type { None, Int, Real, Bool, String, Array, Tuple, Func, Ref };
+enum class Type : uint8_t { None, Int, Real, Bool, String, Array, Tuple, Func, Ref };
 std::ostream& operator<<(std::ostream&, const Type&);
 
 uint32_t packLock(Location loc);
@@ -174,7 +174,7 @@ struct FunctionScheme {
 };
 
 struct TupleScheme {
-    std::vector<std::optional<std::string>> field_names;
+    std::vector<size_t> field_names;
 };
 
 static int16_t imm16_1(Bytecode bc) {
@@ -236,6 +236,11 @@ struct BcFile {
     size_t main_function_index;
 
     size_t addString(const std::string& s) {
+        for (size_t i = 0; i < strings.size(); ++i) {
+            if (strings[i] == s) {
+                return i;
+            }
+        }
         strings.push_back(s);
         return strings.size() - 1;
     }
@@ -255,8 +260,8 @@ struct BcFile {
                 if (fi)
                     os << ", ";
                 const auto& name = ts.field_names[fi];
-                if (name)
-                    os << *name;
+                if (name != static_cast<size_t>(-1))
+                    os << strings[name];
                 else
                     os << "_";
             }

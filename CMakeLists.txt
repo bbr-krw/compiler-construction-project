@@ -61,6 +61,7 @@ target_link_libraries(sema_lib PUBLIC parse_lib)
 # ── Tree-walking interpreter ──────────────────────────────────────────────────
 add_library(interp_lib STATIC
     src/interpreter.cpp
+    src/gc.cpp
 )
 target_link_libraries(interp_lib PUBLIC parse_lib)
 

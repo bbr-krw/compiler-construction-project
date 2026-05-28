@@ -3,22 +3,24 @@
 #include "ast.hpp"
 #include "ast_visitor.hpp"
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
+
+// ── GC handle type ─────────────────────────────────────────────────────────────
+using GcHandle                    = uint32_t;
+inline constexpr GcHandle GC_NULL = UINT32_MAX;
 
 // ── Runtime value ─────────────────────────────────────────────────────────────
 //
-// Forward declarations to break circular dependencies:
-//   DValue  ← shared_ptr<vector<TupleElem>>
-//   TupleElem ← DValue (by value)
-//
-// Solution: DValue holds a shared_ptr to an opaque vector; TupleElem is
-// defined after DValue is complete; make_tuple/make_func are out-of-line.
+// Arrays and tuples live on the GC-managed heap, accessed via GcHandle href.
+// Function closures remain ref-counted (shared_ptr<FuncClosure>).
 
 struct TupleElem;   // forward – complete definition follows DValue
 struct FuncClosure; // forward – complete definition follows TupleElem
@@ -31,9 +33,8 @@ struct DValue {
     double rval{};
     bool bval{};
     std::string sval;
-    std::shared_ptr<std::map<long long, DValue>> aval; // Array: key → value
-    std::shared_ptr<std::vector<TupleElem>> tval;      // Tuple elements (heap)
-    std::shared_ptr<FuncClosure> fval;                 // Function closure
+    GcHandle href{GC_NULL};            // Array or Tuple handle into GC heap
+    std::shared_ptr<FuncClosure> fval; // Function closure (ref-counted)
 
     static DValue make_none() { return {}; }
     static DValue make_int(long long v) {
@@ -60,15 +61,10 @@ struct DValue {
         d.sval = std::move(v);
         return d;
     }
-    static DValue make_array(std::map<long long, DValue> m) {
-        DValue d;
-        d.type = Type::Array;
-        d.aval = std::make_shared<std::map<long long, DValue>>(std::move(m));
-        return d;
-    }
-
-    // Declared here, defined after TupleElem / FuncClosure are complete:
+    // Defined in gc.cpp (require complete Heap via g_heap):
+    static DValue make_array(std::map<long long, DValue> m);
     static DValue make_tuple(std::vector<TupleElem> e);
+    // Declared here, defined inline after FuncClosure is complete:
     static DValue make_func(
         const FuncLitNode* n,
         std::vector<std::shared_ptr<std::unordered_map<std::string, DValue>>> env);
@@ -97,14 +93,7 @@ struct FuncClosure {
     Env captured_env;        // lexical environment at definition time
 };
 
-// ── Out-of-line factory definitions (all dependencies now complete) ────────────
-
-inline DValue DValue::make_tuple(std::vector<TupleElem> e) {
-    DValue d;
-    d.type = Type::Tuple;
-    d.tval = std::make_shared<std::vector<TupleElem>>(std::move(e));
-    return d;
-}
+// ── DValue::make_func (inline, defined after FuncClosure is complete) ───────────
 
 inline DValue DValue::make_func(const FuncLitNode* n, Env env) {
     DValue d;
@@ -112,6 +101,54 @@ inline DValue DValue::make_func(const FuncLitNode* n, Env env) {
     d.fval = std::make_shared<FuncClosure>(FuncClosure{n, std::move(env)});
     return d;
 }
+
+// ── GC heap objects ───────────────────────────────────────────────────────────
+
+enum class ObjKind : uint8_t { Array, Tuple };
+
+struct HeapObj {
+    ObjKind kind;
+    GcHandle fwd{GC_NULL};           // forwarding pointer during collection
+    std::map<long long, DValue> arr; // Array payload
+    std::vector<TupleElem> tup;      // Tuple payload
+};
+
+// ── Semi-space stop-the-world copying garbage collector ───────────────────────
+
+class Heap {
+public:
+    static constexpr size_t kDefaultThreshold = 512;
+    explicit Heap(size_t threshold = kDefaultThreshold);
+
+    GcHandle alloc_array(std::map<long long, DValue> m);
+    GcHandle alloc_tuple(std::vector<TupleElem> t);
+
+    HeapObj& get(GcHandle h) { return from_[h]; }
+    const HeapObj& get(GcHandle h) const { return from_[h]; }
+
+    size_t size() const { return from_.size(); }
+    size_t gc_count() const { return gc_count_; }
+    bool needs_gc() const { return from_.size() >= threshold_; }
+
+    // Stop-the-world Cheney copy collection.
+    // roots      = pointers to every live DValue (from env frames + val register).
+    // env_frames = current interpreter env frames; pre-marked so closures
+    //              do not re-scan them and cause double-evacuation.
+    void collect(std::vector<DValue*> roots, std::vector<Frame*> env_frames);
+
+private:
+    std::vector<HeapObj> from_, to_;
+    std::unordered_set<Frame*> gc_visited_frames_; // scratch set during collection
+    size_t threshold_;
+    size_t gc_count_{0};
+
+    GcHandle evacuate(GcHandle h); // copy from_[h] to to_; idempotent via fwd ptr
+    void scan_value(DValue& v);    // update GC handles in v; trace closures
+    void scan_obj(GcHandle idx);   // scan children of to_[idx]
+};
+
+// Per-interpreter thread-local heap pointer; set during Interpreter::run().
+extern thread_local Heap* g_heap;
 
 // ── Control-flow signals (thrown as exceptions) ────────────────────────────────
 
@@ -175,4 +212,7 @@ private:
     DValue eval(const ASTNode& node);
     void assign_lvalue(const ASTNode& lhs, DValue rhs);
     DValue call_func(const DValue& fv, std::vector<DValue> args);
+
+    Heap heap_;
+    void maybe_gc(); // trigger STW copy GC when allocation threshold is reached
 };

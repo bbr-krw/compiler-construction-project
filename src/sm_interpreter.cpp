@@ -14,77 +14,11 @@
 
 namespace sm {
 
-DValue* concat(DValue* first, DValue* second) {
-    if (first->type != second->type) {
-        throw std::runtime_error("cannot concat different types");
-    }
-
-    switch (first->type) {
-    case Type::Ref:
-    case Type::None:
-    case Type::Int:
-    case Type::Real:
-    case Type::Bool:
-    case Type::Func:
-        throw std::runtime_error("unsupported type for concatenation");
-
-    case Type::String: {
-        DString* first_str  = reinterpret_cast<DString*>(first->value);
-        DString* second_str = reinterpret_cast<DString*>(second->value);
-
-        std::string result = first_str->data;
-        result += second_str->data;
-
-        return make_string(result);
-    }
-
-    case Type::Array: {
-        DArray* first_arr  = reinterpret_cast<DArray*>(first->value);
-        DArray* second_arr = reinterpret_cast<DArray*>(second->value);
-
-        DArray array;
-        int first_arr_max_key = std::numeric_limits<int>::min();
-        for (const auto& [key, value] : *first_arr) {
-            array.emplace(key, value);
-            first_arr_max_key = std::max(first_arr_max_key, key);
-        }
-        for (const auto& [key, value] : *second_arr) {
-            array.emplace(key + first_arr_max_key, value);
-        }
-
-        return make_array(array);
-    }
-
-    case Type::Tuple: {
-        DTuple* first_tuple  = reinterpret_cast<DTuple*>(first->value);
-        DTuple* second_tuple = reinterpret_cast<DTuple*>(second->value);
-
-        std::vector<std::optional<std::string>> result_names = first_tuple->scheme->field_names;
-        std::vector<DValue*> result_elements{
-            first_tuple->elements, first_tuple->elements + first_tuple->scheme->field_names.size()};
-
-        for (size_t i = 0; i < second_tuple->scheme->field_names.size(); i++) {
-            const auto& name = second_tuple->scheme->field_names[i];
-            if (name.has_value()) {
-                if (std::find(result_names.begin(), result_names.end(), name) !=
-                    result_names.end()) {
-                    throw std::runtime_error("duplicated tuple fields during concatenation");
-                }
-            }
-
-            result_names.push_back(name);
-            result_elements.push_back(second_tuple->elements[i]);
-        }
-
-        const auto* result_scheme = new TupleScheme{result_names};
-        return sm::make_tuple(result_scheme, result_elements);
-    }
-    }
-    __builtin_unreachable();
-}
+using namespace gc;
 
 void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
-    DValue* return_value;
+    Heap& heap = runtime->heap;
+    HeapObject* return_value;
 
     const auto* main_scheme = &bc_file.functions[bc_file.main_function_index];
     Frame initial_frame(runtime, main_scheme, std::numeric_limits<size_t>::max());
@@ -106,8 +40,8 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
 
         switch (sig(bc)) {
         case BC_BINOP: {
-            DValue* second = resolve_ref(frame.pop());
-            DValue* first  = resolve_ref(frame.pop());
+            HeapObject* second = resolve_ref(frame.pop());
+            HeapObject* first  = resolve_ref(frame.pop());
 
             int32_t op = imm32(bc);
 
@@ -135,42 +69,42 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
                 }
 
                 if (first->type == Type::Real || second->type == Type::Real) {
-                    const auto first_arg  = get_float(*first);
-                    const auto second_arg = get_float(*second);
+                    const auto first_arg  = get_float(first);
+                    const auto second_arg = get_float(second);
                     std::cerr << first_arg << ' ' << second_arg << '\n';
 
                     switch (op) {
-                        CASE_BINOP(0, +, make_real)
-                        CASE_BINOP(1, -, make_real)
-                        CASE_BINOP(2, *, make_real)
-                        CASE_BINOP(3, /, make_real)
-                        CASE_BINOP(5, <, make_bool)
-                        CASE_BINOP(6, <=, make_bool)
-                        CASE_BINOP(7, >, make_bool)
-                        CASE_BINOP(8, >=, make_bool)
-                        CASE_BINOP(9, ==, make_bool)
-                        CASE_BINOP(10, !=, make_bool)
+                        CASE_BINOP(0, +, heap.make_real)
+                        CASE_BINOP(1, -, heap.make_real)
+                        CASE_BINOP(2, *, heap.make_real)
+                        CASE_BINOP(3, /, heap.make_real)
+                        CASE_BINOP(5, <, heap.make_bool)
+                        CASE_BINOP(6, <=, heap.make_bool)
+                        CASE_BINOP(7, >, heap.make_bool)
+                        CASE_BINOP(8, >=, heap.make_bool)
+                        CASE_BINOP(9, ==, heap.make_bool)
+                        CASE_BINOP(10, !=, heap.make_bool)
 
                     default: {
                         throw std::runtime_error("unsupported binop operand type");
                     }
                     }
                 } else {
-                    const auto first_arg  = static_cast<int>(first->value);
-                    const auto second_arg = static_cast<int>(second->value);
+                    const auto first_arg  = reinterpret_cast<DInt*>(first)->value;
+                    const auto second_arg = reinterpret_cast<DInt*>(second)->value;
 
                     switch (op) {
-                        CASE_BINOP(0, +, make_int)
-                        CASE_BINOP(1, -, make_int)
-                        CASE_BINOP(2, *, make_int)
-                        CASE_BINOP(3, /, make_int)
-                        CASE_BINOP(4, %, make_int)
-                        CASE_BINOP(5, <, make_bool)
-                        CASE_BINOP(6, <=, make_bool)
-                        CASE_BINOP(7, >, make_bool)
-                        CASE_BINOP(8, >=, make_bool)
-                        CASE_BINOP(9, ==, make_bool)
-                        CASE_BINOP(10, !=, make_bool)
+                        CASE_BINOP(0, +, heap.make_int)
+                        CASE_BINOP(1, -, heap.make_int)
+                        CASE_BINOP(2, *, heap.make_int)
+                        CASE_BINOP(3, /, heap.make_int)
+                        CASE_BINOP(4, %, heap.make_int)
+                        CASE_BINOP(5, <, heap.make_bool)
+                        CASE_BINOP(6, <=, heap.make_bool)
+                        CASE_BINOP(7, >, heap.make_bool)
+                        CASE_BINOP(8, >=, heap.make_bool)
+                        CASE_BINOP(9, ==, heap.make_bool)
+                        CASE_BINOP(10, !=, heap.make_bool)
 
                     default: {
                         throw std::runtime_error("unsupported binop operand type");
@@ -186,13 +120,13 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
                     throw std::runtime_error("unsupported binop operand type");
                 }
 
-                const auto first_arg  = static_cast<bool>(first->value);
-                const auto second_arg = static_cast<bool>(second->value);
+                const auto first_arg  = reinterpret_cast<DBool*>(first)->value;
+                const auto second_arg = reinterpret_cast<DBool*>(second)->value;
 
                 switch (op) {
-                    CASE_BINOP(11, &&, make_bool)
-                    CASE_BINOP(12, ||, make_bool)
-                    CASE_BINOP(13, ^, make_bool)
+                    CASE_BINOP(11, &&, heap.make_bool)
+                    CASE_BINOP(12, ||, heap.make_bool)
+                    CASE_BINOP(13, ^, heap.make_bool)
 
                 default: {
                     throw std::runtime_error("unsupported binop operand type");
@@ -207,38 +141,40 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             case Type::Tuple: {
                 switch (op) {
                 case 0:
-                    frame.push(concat(first, second));
+                    frame.push(runtime->concat(first, second));
                     break;
                 case 9: {
                     if (first->type != second->type) {
-                        frame.push(make_bool(false));
+                        frame.push(heap.make_bool(false));
                         break;
                     }
 
                     if (first->type == Type::String) {
-                        auto first_string  = reinterpret_cast<DString*>(first->value);
-                        auto second_string = reinterpret_cast<DString*>(second->value);
-                        frame.push(make_bool(strcmp(first_string->data, second_string->data) == 0));
+                        auto first_string  = reinterpret_cast<DString*>(first);
+                        auto second_string = reinterpret_cast<DString*>(second);
+                        frame.push(
+                            heap.make_bool(strcmp(first_string->data, second_string->data) == 0));
                         break;
                     }
 
-                    frame.push(make_bool(first == second));
+                    frame.push(heap.make_bool(first == second));
                     break;
                 }
                 case 10: {
                     if (first->type != second->type) {
-                        frame.push(make_bool(true));
+                        frame.push(heap.make_bool(true));
                         break;
                     }
 
                     if (first->type == Type::String) {
-                        auto first_string  = reinterpret_cast<DString*>(first->value);
-                        auto second_string = reinterpret_cast<DString*>(second->value);
-                        frame.push(make_bool(strcmp(first_string->data, second_string->data) != 0));
+                        auto first_string  = reinterpret_cast<DString*>(first);
+                        auto second_string = reinterpret_cast<DString*>(second);
+                        frame.push(
+                            heap.make_bool(strcmp(first_string->data, second_string->data) != 0));
                         break;
                     }
 
-                    frame.push(make_bool(first != second));
+                    frame.push(heap.make_bool(first != second));
                     break;
                 }
                 }
@@ -252,9 +188,9 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_ISTYPE: {
-            DValue* val        = resolve_ref(frame.pop());
+            HeapObject* val    = resolve_ref(frame.pop());
             Type expected_type = static_cast<Type>(imm32(bc));
-            frame.push(make_bool(val->type == expected_type));
+            frame.push(runtime->heap.make_bool(val->type == expected_type));
             break;
         }
 
@@ -275,14 +211,21 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
                 throw std::runtime_error("Array should be of array type");
             }
 
-            DArray* raw_array = reinterpret_cast<DArray*>(array->value);
-            size_t raw_index  = static_cast<size_t>(index->value);
+            auto* darray     = reinterpret_cast<DArray*>(array);
+            auto raw_array   = darray->data->elements;
+            size_t raw_index = reinterpret_cast<DInt*>(index)->value;
 
-            DValue* value = raw_array->contains(raw_index)
-                                ? raw_array->at(raw_index)
-                                : ((*raw_array)[raw_index] = make_ref(runtime->none_obj));
-            frame.push(value);
+            for (size_t i = 0; i < darray->data->size; i++) {
+                if (raw_array[i].first == raw_index) {
+                    frame.push(raw_array[i].second);
+                    goto found;
+                }
+            }
 
+            heap.replace_array_data(
+                darray, std::pair<size_t, DRef*>{raw_index, heap.make_ref(runtime->none_obj)});
+            frame.push(heap.make_none());
+        found:
             break;
         }
 
@@ -291,27 +234,28 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             if (tuple->type != Type::Tuple) {
                 throw std::runtime_error("Tuple should be of tuple type");
             }
-            DTuple* raw_tuple = reinterpret_cast<DTuple*>(tuple->value);
+            DTuple* raw_tuple = reinterpret_cast<DTuple*>(tuple);
 
             const auto index = imm32(bc);
             if (index < 0) {
-                if (static_cast<size_t>(-1 - index) >= raw_tuple->scheme->field_names.size()) {
+                if (static_cast<size_t>(-1 - index) >= raw_tuple->length) {
                     throw std::runtime_error("invalid tuple index");
                 }
 
-                frame.push(raw_tuple->elements[-1 - index]);
+                frame.push(raw_tuple->elements[-1 - index].second);
             } else {
-                const std::string& name = bc_file.strings.at(index);
-                const auto& field_names = raw_tuple->scheme->field_names;
-                const size_t tuple_index =
-                    std::find(field_names.begin(), field_names.end(), name) - field_names.begin();
-                if (tuple_index == field_names.size()) {
+                size_t tuple_index = -1;
+                for (size_t i = 0; i < raw_tuple->length; i++) {
+                    if (raw_tuple->elements[i].first == static_cast<size_t>(index)) {
+                        tuple_index = i;
+                        break;
+                    }
+                }
+                if (tuple_index == static_cast<size_t>(-1)) {
                     throw std::runtime_error("invalid tuple get");
                 }
-
-                frame.push(raw_tuple->elements[tuple_index]);
+                frame.push(raw_tuple->elements[tuple_index].second);
             }
-
             break;
         }
 
@@ -333,11 +277,19 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
                 throw std::runtime_error("Array should be of array type");
             }
 
-            DArray* raw_array = reinterpret_cast<DArray*>(array->value);
-            size_t raw_index  = static_cast<size_t>(index->value);
+            DArray* darray   = reinterpret_cast<DArray*>(array);
+            auto raw_array   = darray->data->elements;
+            size_t raw_index = reinterpret_cast<DInt*>(index)->value;
 
-            raw_array->emplace(raw_index, make_ref(element));
-
+            for (size_t i = 0; i < darray->data->size; i++) {
+                if (raw_array[i].first == raw_index) {
+                    raw_array[i].second = heap.make_ref(element);
+                    goto found2;
+                }
+            }
+            heap.replace_array_data(darray,
+                                    std::pair<size_t, DRef*>{raw_index, heap.make_ref(element)});
+        found2:
             break;
         }
 
@@ -348,37 +300,39 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             if (tuple->type != Type::Tuple) {
                 throw std::runtime_error("Tuple should be of tuple type");
             }
-            DTuple* raw_tuple = reinterpret_cast<DTuple*>(tuple->value);
+            DTuple* raw_tuple = reinterpret_cast<DTuple*>(tuple);
 
             const auto index = imm16_1(bc);
             if (index >= 0) {
-                if (static_cast<size_t>(index) >= raw_tuple->scheme->field_names.size()) {
+                if (static_cast<size_t>(index) >= raw_tuple->length) {
                     throw std::runtime_error("invalid tuple index");
                 }
-
-                raw_tuple->elements[index] = element;
+                raw_tuple->elements[index].second = heap.make_ref(element);
             } else {
-                const std::string& name = bc_file.strings.at(-1 - index);
-                const auto& field_names = raw_tuple->scheme->field_names;
-                const size_t tuple_index =
-                    std::find(field_names.begin(), field_names.end(), name) - field_names.begin();
-                if (tuple_index == field_names.size()) {
+                size_t tuple_index = -1;
+                for (size_t i = 0; i < raw_tuple->length; i++) {
+                    if (raw_tuple->elements[i].first == static_cast<size_t>(-1 - index)) {
+                        tuple_index = i;
+                        break;
+                    }
+                }
+                if (tuple_index == static_cast<size_t>(-1)) {
                     throw std::runtime_error("invalid tuple get");
                 }
 
-                raw_tuple->elements[tuple_index] = element;
+                raw_tuple->elements[tuple_index].second = heap.make_ref(element);
             }
 
             break;
         }
 
         case BC_STD: {
-            DValue* src  = resolve_ref(frame.pop());
-            DValue* dest = frame.pop();
+            HeapObject* src  = resolve_ref(frame.pop());
+            HeapObject* dest = frame.pop();
             if (dest->type != Type::Ref) {
-                throw std::runtime_error("assingment to non-ref object");
+                throw std::runtime_error("assignment to non-ref object");
             }
-            dest->value = reinterpret_cast<uint64_t>(src);
+            change_ref(dest, src);
             break;
         }
 
@@ -389,36 +343,36 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_NONE: {
-            frame.push(make_none());
+            frame.push(heap.make_none());
             break;
         }
 
         case BC_CONST: {
-            DValue* value = make_int(imm32(bc));
+            HeapObject* value = heap.make_int(imm32(bc));
             frame.push(value);
             break;
         }
 
         case BC_BOOL: {
-            DValue* value = make_bool(imm32(bc));
+            HeapObject* value = heap.make_bool(imm32(bc));
             frame.push(value);
             break;
         }
 
         case BC_REAL: {
-            DValue* value = make_real(raw_to_float(imm32(bc)));
+            HeapObject* value = heap.make_real(raw_to_float(imm32(bc)));
             frame.push(value);
             break;
         }
 
         case BC_ARRAY: {
-            frame.push(make_array({}));
+            frame.push(heap.make_array({}));
             break;
         }
 
         case BC_STRING: {
             const size_t index = imm32(bc);
-            DValue* string     = make_string(bc_file.strings[index]);
+            HeapObject* string = heap.make_string(bc_file.strings[index]);
             frame.push(string);
             break;
         }
@@ -426,13 +380,14 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         case BC_TUPLE: {
             const TupleScheme* scheme = &bc_file.tuples[imm32(bc)];
 
-            std::vector<DValue*> elements;
+            std::vector<std::pair<size_t, DRef*>> elements;
             for (size_t i = 0; i < scheme->field_names.size(); i++) {
-                elements.push_back(resolve_ref(frame.pop()));
+                elements.emplace_back(scheme->field_names[i],
+                                      heap.make_ref(resolve_ref(frame.pop())));
             }
             std::reverse(elements.begin(), elements.end());
 
-            frame.push(sm::make_tuple(scheme, elements));
+            frame.push(heap.make_tuple(elements));
             break;
         }
 
@@ -462,40 +417,40 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_DUP: {
-            DValue* value = frame.pop();
+            HeapObject* value = frame.pop();
             frame.push(value);
             frame.push(value);
             break;
         }
 
         case BC_RNGSPC: {
-            DValue* iterator = resolve_ref(frame.pop());
-            DValue* target   = resolve_ref(frame.pop());
+            HeapObject* iterator = resolve_ref(frame.pop());
+            HeapObject* target   = resolve_ref(frame.pop());
             if (target->type != Type::Int || iterator->type != Type::Int) {
                 throw std::runtime_error("unexpected type for range limits");
             }
-            int iterable_v = iterator->value;
-            int target_v   = target->value;
-            frame.push(make_int(iterable_v <= target_v ? iterable_v + 1 : iterable_v - 1));
+            int iterable_v = reinterpret_cast<DInt*>(iterator)->value;
+            int target_v   = reinterpret_cast<DInt*>(target)->value;
+            frame.push(heap.make_int(iterable_v <= target_v ? iterable_v + 1 : iterable_v - 1));
             break;
         }
 
         case BC_LENGTH: {
-            DValue* iterable = resolve_ref(frame.pop());
+            HeapObject* iterable = resolve_ref(frame.pop());
             switch (iterable->type) {
             case Type::Array: {
-                DArray* arr = reinterpret_cast<DArray*>(iterable->value);
-                frame.push(make_int(arr->size()));
+                DArray* arr = reinterpret_cast<DArray*>(iterable);
+                frame.push(heap.make_int(arr->data->size));
                 break;
             }
             case Type::Tuple: {
-                DTuple* tup = reinterpret_cast<DTuple*>(iterable->value);
-                frame.push(make_int(tup->scheme->field_names.size()));
+                DTuple* tup = reinterpret_cast<DTuple*>(iterable);
+                frame.push(heap.make_int(tup->length));
                 break;
             }
             case Type::String: {
-                DString* str = reinterpret_cast<DString*>(iterable->value);
-                frame.push(make_int(str->capacity));
+                DString* str = reinterpret_cast<DString*>(iterable);
+                frame.push(heap.make_int(str->length));
                 break;
             }
             default:
@@ -505,12 +460,12 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_CJMPZ: {
-            DValue* condition = resolve_ref(frame.pop());
+            HeapObject* condition = resolve_ref(frame.pop());
             if (condition->type != Type::Bool) {
                 throw std::runtime_error("unexpected condition type");
             }
 
-            if (!static_cast<bool>(condition->value)) {
+            if (!static_cast<bool>(reinterpret_cast<DBool*>(condition)->value)) {
                 bc_index = imm32(bc);
                 jumped   = true;
             }
@@ -520,12 +475,12 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         case BC_CLOSURE: {
             const FunctionScheme* scheme = &bc_file.functions[imm32(bc)];
 
-            std::vector<DValue*> captured;
+            std::vector<DRef*> captured;
             for (auto& loc : scheme->capture) {
-                captured.push_back(frame[loc]);
+                captured.push_back(heap.make_ref(frame[loc]));
             }
 
-            DValue* func = make_function(scheme, captured);
+            HeapObject* func = heap.make_function(scheme, captured);
             frame.push(func);
             break;
         }
@@ -533,8 +488,8 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         case BC_CALLC: {
             const size_t args_count = imm32(bc);
 
-            DValue* func    = resolve_ref(frame.pop());
-            DFunc* raw_func = reinterpret_cast<DFunc*>(func->value);
+            HeapObject* func = resolve_ref(frame.pop());
+            DFunc* raw_func  = reinterpret_cast<DFunc*>(func);
             if (func->type != Type::Func) {
                 throw std::runtime_error("Function should be of function type");
             }
@@ -542,12 +497,12 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
                 throw std::runtime_error("Function called with invalid args number");
             }
 
-            std::vector<DValue*> args(args_count);
+            std::vector<HeapObject*> args(args_count);
             for (int arg_id = args_count - 1; arg_id >= 0; --arg_id) {
                 args[arg_id] = resolve_ref(frame.pop());
             }
-            std::vector<DValue*> capture(raw_func->capture,
-                                         raw_func->capture + raw_func->scheme->capture.size());
+            std::vector<DRef*> capture(raw_func->capture,
+                                       raw_func->capture + raw_func->scheme->capture.size());
             Frame new_frame(runtime, raw_func->scheme, bc_index + 1, args, capture);
             runtime->stack.push(new_frame);
 

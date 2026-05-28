@@ -263,9 +263,9 @@ void BcCompiler::visit(const TupleLitNode& t) {
     for (size_t i = 0; i < t.elems.size(); i++) {
         const auto elem = reinterpret_cast<const TupleElemNode*>(t.elems[i].get());
         if (elem->elem_name.empty()) {
-            scheme.field_names.push_back(std::nullopt);
+            scheme.field_names.push_back(-1); // unnamed field
         } else {
-            scheme.field_names.push_back(elem->elem_name);
+            scheme.field_names.push_back(bc_file.addString(elem->elem_name));
         }
     }
 

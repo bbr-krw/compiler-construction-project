@@ -2,108 +2,50 @@
 
 #include "bytecode.hpp"
 
-#include <cstdint>
 #include <iostream>
 #include <stdexcept>
 
 namespace sm {
 
-template <typename T> Segment<T>* make_segment(size_t n) {
-    size_t segment_size = sizeof(size_t) + n * sizeof(T);
-    auto ptr            = new uint8_t[segment_size];
-    return reinterpret_cast<Segment<T>*>(ptr);
-}
+using namespace gc;
 
-DValue* make_none() {
-    return new DValue{.type = Type::None, .mark = false, .value = 0};
-}
-
-DValue* make_int(int value) {
-    return new DValue{.type = Type::Int, .mark = false, .value = static_cast<uint64_t>(value)};
-}
-
-DValue* make_real(float value) {
-    return new DValue{.type = Type::Real, .mark = false, .value = float_to_raw(value)};
-}
-
-DValue* make_bool(bool value) {
-    return new DValue{.type = Type::Bool, .mark = false, .value = static_cast<uint64_t>(value)};
-}
-
-DValue* make_string(const std::string& string) {
-    auto segment = make_segment<char>(1 + string.size());
-    std::strcpy(segment->data, string.c_str());
-    return new DValue{
-        .type = Type::String, .mark = false, .value = reinterpret_cast<uint64_t>(segment)};
-}
-
-DValue* make_array(const DArray& elements) {
-    auto array = new DArray{elements};
-    return new DValue{
-        .type = Type::Array, .mark = false, .value = reinterpret_cast<uint64_t>(array)};
-}
-
-DValue* make_tuple(const TupleScheme* scheme, const std::vector<DValue*>& elements) {
-    size_t tuple_size = sizeof(DTuple) + elements.size() * sizeof(DValue);
-    auto tuple        = reinterpret_cast<DTuple*>(new uint8_t[tuple_size]);
-    tuple->scheme     = scheme;
-    for (size_t i = 0; i < elements.size(); i++) {
-        tuple->elements[i] = make_ref(elements[i]);
+float get_float(HeapObject* value) {
+    switch (value->type) {
+    case Type::Int: {
+        return static_cast<float>(reinterpret_cast<DInt*>(value)->value);
     }
-    return new DValue{
-        .type = Type::Tuple, .mark = false, .value = reinterpret_cast<uint64_t>(tuple)};
-}
-
-DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue*>& captured) {
-    size_t func_size = sizeof(DFunc) + captured.size() * sizeof(DValue**);
-    auto func        = reinterpret_cast<DFunc*>(new uint8_t[func_size]);
-    func->scheme     = scheme;
-    for (size_t i = 0; i < captured.size(); i++) {
-        assert(captured[i]->type == Type::Ref);
-        func->capture[i] = captured[i];
+    case Type::Real: {
+        return reinterpret_cast<DReal*>(value)->value;
     }
-    return new DValue{.type = Type::Func, .mark = false, .value = reinterpret_cast<uint64_t>(func)};
-}
-
-DValue* make_ref(DValue* ref) {
-    return new DValue{.type = Type::Ref, .mark = false, .value = reinterpret_cast<uint64_t>(ref)};
-}
-
-float get_float(const DValue& value) {
-    switch (value.type) {
-    case Type::Int:
-        return static_cast<int>(value.value);
-    case Type::Real:
-        return raw_to_float(value.value);
-    default:
-        throw std::runtime_error("can't case value to float");
+    default: {
+        throw std::runtime_error("expected numeric value");
+    }
     }
 }
 
-void Frame::push(DValue* value) {
+void Frame::push(HeapObject* value) {
     stack.push_back(value);
 }
 
-DValue* Frame::pop() {
-    DValue* value = stack.back();
+HeapObject* Frame::pop() {
+    HeapObject* value = stack.back();
     stack.pop_back();
     return value;
 }
 
-DValue* resolve_ref(DValue* val) {
-    if (val->type != Type::Ref) {
-        return val;
-    } else {
-        return resolve_ref(reinterpret_cast<DValue*>(val->value));
+HeapObject* resolve_ref(HeapObject* val) {
+    while (val->type == Type::Ref) {
+        val = reinterpret_cast<DRef*>(val)->ref;
     }
+    return reinterpret_cast<HeapObject*>(val);
 }
 
-void change_ref(DValue* ref, DValue* val) {
+void change_ref(HeapObject* ref, HeapObject* val) {
     assert(ref->type == Type::Ref);
-    ref->value = reinterpret_cast<uint64_t>(val);
+    reinterpret_cast<DRef*>(ref)->ref = val;
 }
 
-DValue* Frame::operator[](Location loc) {
+HeapObject* Frame::operator[](Location loc) {
     switch (loc.type) {
     case LOCAL: {
         return locals[loc.index];
@@ -118,7 +60,7 @@ DValue* Frame::operator[](Location loc) {
     }
 }
 
-void Runtime::print(DValue* value, std::ostream& os) {
+void Runtime::print(HeapObject* value, std::ostream& os) {
     switch (value->type) {
     case Type::None: {
         os << "none";
@@ -126,17 +68,17 @@ void Runtime::print(DValue* value, std::ostream& os) {
     }
 
     case Type::Int: {
-        os << static_cast<int>(value->value);
+        os << static_cast<int>(reinterpret_cast<DInt*>(value)->value);
         break;
     }
 
     case Type::Real: {
-        os << raw_to_float(value->value);
+        os << reinterpret_cast<DReal*>(value)->value;
         break;
     }
 
     case Type::Bool: {
-        if (value->value) {
+        if (reinterpret_cast<DBool*>(value)->value) {
             os << "true";
         } else {
             os << "false";
@@ -145,40 +87,40 @@ void Runtime::print(DValue* value, std::ostream& os) {
     }
 
     case Type::String: {
-        auto string = reinterpret_cast<DString*>(value->value);
-        os << string->data;
+        auto string = reinterpret_cast<DString*>(value)->data;
+        os << string;
         break;
     }
 
     case Type::Array: {
-        auto array = reinterpret_cast<DArray*>(value->value);
+        auto darray = reinterpret_cast<DArray*>(value);
         os << "[";
-        size_t i = 0;
-        for (const auto& [key, value] : *array) {
+        for (size_t i = 0; i < darray->data->size; i++) {
+            auto [key, value] = darray->data->elements[i];
             if (i > 0) {
                 os << ", ";
             }
-            i++;
             // os << key << ":";
-            print(resolve_ref(value), os);
+            print(value, os);
         }
         os << "]";
         break;
     }
 
     case Type::Tuple: {
-        auto tuple = reinterpret_cast<DTuple*>(value->value);
+        auto tuple = reinterpret_cast<DTuple*>(value);
         os << "{";
-        for (size_t i = 0; i < tuple->scheme->field_names.size(); i++) {
+        for (size_t i = 0; i < tuple->length; i++) {
+            auto [name_index, value] = tuple->elements[i];
             if (i > 0) {
                 os << ", ";
             }
 
-            if (tuple->scheme->field_names[i].has_value()) {
-                os << tuple->scheme->field_names[i].value();
+            if (name_index != static_cast<size_t>(-1)) {
+                os << bc_file->strings[name_index];
                 os << " := ";
             }
-            print(resolve_ref(tuple->elements[i]), os);
+            print(value, os);
         }
         os << "}";
         break;
@@ -194,6 +136,75 @@ void Runtime::print(DValue* value, std::ostream& os) {
         break;
     }
     }
+}
+
+HeapObject* Runtime::concat(HeapObject* first, HeapObject* second) {
+    if (first->type != second->type) {
+        throw std::runtime_error("cannot concat different types");
+    }
+
+    switch (first->type) {
+    case Type::Ref:
+    case Type::None:
+    case Type::Int:
+    case Type::Real:
+    case Type::Bool:
+    case Type::Func:
+        throw std::runtime_error("unsupported type for concatenation");
+
+    case Type::String: {
+        DString* first_str  = reinterpret_cast<DString*>(first);
+        DString* second_str = reinterpret_cast<DString*>(second);
+
+        std::string result = first_str->data;
+        result += second_str->data;
+
+        return heap.make_string(result);
+    }
+
+    case Type::Array: {
+        DArray* first_arr  = reinterpret_cast<DArray*>(first);
+        DArray* second_arr = reinterpret_cast<DArray*>(second);
+
+        std::vector<std::pair<size_t, DRef*>> array;
+
+        size_t first_arr_max_key = std::numeric_limits<size_t>::min();
+        for (const auto& [key, value] :
+             std::span(first_arr->data->elements, first_arr->data->size)) {
+            array.emplace_back(key, value);
+            first_arr_max_key = std::max(first_arr_max_key, key);
+        }
+        for (const auto& [key, value] :
+             std::span(second_arr->data->elements, second_arr->data->size)) {
+            array.emplace_back(key + first_arr_max_key, value);
+        }
+
+        return heap.make_array(array);
+    }
+
+    case Type::Tuple: {
+        DTuple* first_tuple  = reinterpret_cast<DTuple*>(first);
+        DTuple* second_tuple = reinterpret_cast<DTuple*>(second);
+
+        for (const auto& [name2_index, _] :
+             std::span(second_tuple->elements, second_tuple->length)) {
+            for (const auto& [name1_index, _] :
+                 std::span(first_tuple->elements, first_tuple->length)) {
+                if (name1_index == name2_index && name1_index != static_cast<size_t>(-1)) {
+                    throw std::runtime_error("duplicated tuple fields during concatenation");
+                }
+            }
+        }
+
+        std::vector<std::pair<size_t, DRef*>> result_elements(
+            first_tuple->elements, first_tuple->elements + first_tuple->length);
+        result_elements.insert(result_elements.end(), second_tuple->elements,
+                               second_tuple->elements + second_tuple->length);
+
+        return heap.make_tuple(result_elements);
+    }
+    }
+    __builtin_unreachable();
 }
 
 } // namespace sm

@@ -25,7 +25,7 @@ std::string DValue::to_string() const {
     case Type::Array: {
         std::string s = "[";
         bool first    = true;
-        for (auto& [k, v] : *aval) {
+        for (auto& [k, v] : g_heap->get(href).arr) {
             if (!first)
                 s += ", ";
             s += v.to_string();
@@ -36,7 +36,7 @@ std::string DValue::to_string() const {
     case Type::Tuple: {
         std::string s = "{";
         bool first    = true;
-        for (auto& e : *tval) {
+        for (auto& e : g_heap->get(href).tup) {
             if (!first)
                 s += ", ";
             s += e.name.empty() ? e.value.to_string() : e.name + " := " + e.value.to_string();
@@ -61,6 +61,7 @@ bool DValue::is_truthy() const {
 Interpreter::Interpreter(std::ostream& out) : out_{out} {}
 
 void Interpreter::run(const ASTNode& root) {
+    g_heap = &heap_;
     env_.clear();
     push_frame();
     root.accept(*this);
@@ -71,6 +72,22 @@ void Interpreter::run(const ASTNode& root) {
     for (auto& frame : env_)
         frame->clear();
     env_.clear();
+    heap_.collect({}, {}); // final pass: free all remaining heap objects
+    g_heap = nullptr;
+}
+
+void Interpreter::maybe_gc() {
+    if (!heap_.needs_gc())
+        return;
+    std::vector<DValue*> roots;
+    std::vector<Frame*> env_frames;
+    roots.push_back(&val_);
+    for (auto& frame : env_) {
+        env_frames.push_back(frame.get());
+        for (auto& [name, val] : *frame)
+            roots.push_back(&val);
+    }
+    heap_.collect(std::move(roots), std::move(env_frames));
 }
 
 void Interpreter::push_frame() {
@@ -99,8 +116,10 @@ DValue Interpreter::eval(const ASTNode& node) {
 // ── Statements ─────────────────────────────────────────────────────────────────
 
 void Interpreter::visit(const ProgramNode& n) {
-    for (const auto& s : n.stmts)
+    for (const auto& s : n.stmts) {
+        maybe_gc();
         s->accept(*this);
+    }
 }
 
 void Interpreter::visit(const BodyNode& n) {
@@ -150,12 +169,12 @@ void Interpreter::assign_lvalue(const ASTNode& lhs, DValue rhs) {
             throw std::runtime_error("index assignment on non-array");
         if (key.type != DValue::Type::Int)
             throw std::runtime_error("array index must be integer");
-        (*base.aval)[key.ival] = std::move(rhs);
+        g_heap->get(base.href).arr[key.ival] = std::move(rhs);
     } else if (auto* dot = dynamic_cast<const DotFieldNode*>(&lhs)) {
         DValue base = eval(*dot->base);
         if (base.type != DValue::Type::Tuple)
             throw std::runtime_error("field assignment on non-tuple");
-        for (auto& e : *base.tval) {
+        for (auto& e : g_heap->get(base.href).tup) {
             if (e.name == dot->field) {
                 e.value = std::move(rhs);
                 return;
@@ -166,9 +185,10 @@ void Interpreter::assign_lvalue(const ASTNode& lhs, DValue rhs) {
         DValue base = eval(*di->base);
         if (base.type != DValue::Type::Tuple)
             throw std::runtime_error("dot-int assignment on non-tuple");
-        if (di->index < 1 || di->index > static_cast<long long>(base.tval->size()))
+        auto& tup_di = g_heap->get(base.href).tup;
+        if (di->index < 1 || di->index > static_cast<long long>(tup_di.size()))
             throw std::runtime_error("tuple index out of range");
-        (*base.tval)[di->index - 1].value = std::move(rhs);
+        tup_di[di->index - 1].value = std::move(rhs);
     } else {
         throw std::runtime_error("invalid lvalue");
     }
@@ -239,11 +259,11 @@ void Interpreter::visit(const ForIterNode& n) {
     };
 
     if (iterable.type == DValue::Type::Array) {
-        for (auto& [k, v] : *iterable.aval)
+        for (auto& [k, v] : g_heap->get(iterable.href).arr)
             if (!run_body(v))
                 return;
     } else if (iterable.type == DValue::Type::Tuple) {
-        for (auto& e : *iterable.tval)
+        for (auto& e : g_heap->get(iterable.href).tup)
             if (!run_body(e.value))
                 return;
     } else {
@@ -334,8 +354,9 @@ void Interpreter::visit(const IndexNode& n) {
         throw std::runtime_error("index on non-array");
     if (key.type != DValue::Type::Int)
         throw std::runtime_error("array index must be integer");
-    auto it = base.aval->find(key.ival);
-    if (it == base.aval->end())
+    auto& arr_idx = g_heap->get(base.href).arr;
+    auto it       = arr_idx.find(key.ival);
+    if (it == arr_idx.end())
         throw std::runtime_error(std::format("array key {} not found", key.ival));
     val_ = it->second;
 }
@@ -382,7 +403,7 @@ void Interpreter::visit(const DotFieldNode& n) {
     DValue base = eval(*n.base);
     if (base.type != DValue::Type::Tuple)
         throw std::runtime_error("dot field access on non-tuple");
-    for (const auto& e : *base.tval)
+    for (const auto& e : g_heap->get(base.href).tup)
         if (e.name == n.field) {
             val_ = e.value;
             return;
@@ -394,9 +415,10 @@ void Interpreter::visit(const DotIntNode& n) {
     DValue base = eval(*n.base);
     if (base.type != DValue::Type::Tuple)
         throw std::runtime_error("dot-int access on non-tuple");
-    if (n.index < 1 || n.index > static_cast<long long>(base.tval->size()))
+    auto& tup_di2 = g_heap->get(base.href).tup;
+    if (n.index < 1 || n.index > static_cast<long long>(tup_di2.size()))
         throw std::runtime_error(std::format("tuple index {} out of range", n.index));
-    val_ = (*base.tval)[n.index - 1].value;
+    val_ = tup_di2[n.index - 1].value;
 }
 
 void Interpreter::visit(const UnaryOpNode& n) {
@@ -507,14 +529,14 @@ void Interpreter::visit(const BinOpNode& n) {
         else if (L.type == T::String && R.type == T::String)
             val_ = DValue::make_str(L.sval + R.sval);
         else if (L.type == T::Array && R.type == T::Array) {
-            std::map<long long, DValue> result = *L.aval;
+            std::map<long long, DValue> result = g_heap->get(L.href).arr;
             long long next                     = result.empty() ? 1 : result.rbegin()->first + 1;
-            for (auto& [k, v] : *R.aval)
+            for (auto& [k, v] : g_heap->get(R.href).arr)
                 result[next++] = v;
             val_ = DValue::make_array(std::move(result));
         } else if (L.type == T::Tuple && R.type == T::Tuple) {
-            std::vector<TupleElem> elems = *L.tval;
-            for (auto& e : *R.tval)
+            std::vector<TupleElem> elems = g_heap->get(L.href).tup;
+            for (auto& e : g_heap->get(R.href).tup)
                 elems.push_back(e);
             val_ = DValue::make_tuple(std::move(elems));
         } else

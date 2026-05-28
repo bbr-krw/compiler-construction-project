@@ -51,7 +51,7 @@ TEST_P(DbciSuiteTest, RunAndCompareGolden) {
     bc_file = bc_comp.compile(*root);
     ASSERT_NO_THROW(bc_file.print(std::cerr));
 
-    sm::Runtime runtime;
+    sm::Runtime runtime(&bc_file);
     std::ostringstream out;
     ASSERT_NO_THROW(sm::interprete(&runtime, bc_file, out));
     EXPECT_EQ(out.str(), expected) << "output mismatch for test" << n;

@@ -1,80 +1,48 @@
 #pragma once
 
 #include "bytecode.hpp"
+#include "gc_heap.hpp"
 
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
-#include <map>
 #include <stack>
-#include <string>
 #include <vector>
 
 namespace sm {
 
-struct DValue {
-    Type type{Type::None};
-    bool mark;
+using namespace gc;
 
-    uint64_t value;
-};
+HeapObject* resolve_ref(HeapObject* val);
+void change_ref(HeapObject* ref, HeapObject* val);
 
-template <typename T> struct __attribute__((packed)) Segment {
-    size_t capacity;
-    T data[0];
-};
-
-using DString = Segment<char>;
-
-using DArray = std::map<int, DValue*>; // Array dvalues should have Ref type
-
-struct DTuple {
-    const TupleScheme* scheme;
-    DValue* elements[0];
-};
-
-struct DFunc {
-    const FunctionScheme* scheme;
-    DValue* capture[0];
-};
-
-DValue* make_none();
-DValue* make_int(int value);
-DValue* make_real(float value);
-DValue* make_bool(bool value);
-DValue* make_string(const std::string& string);
-DValue* make_array(const DArray& elements);
-DValue* make_tuple(const TupleScheme* scheme, const std::vector<DValue*>& elements);
-DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue*>& captured);
-DValue* make_ref(DValue* ref);
-
-DValue* resolve_ref(DValue* val);
-void change_ref(DValue* ref, DValue* val);
-
-float get_float(const DValue& value);
+float get_float(HeapObject* value);
 
 struct Frame;
 
 struct Runtime {
+    const BcFile* bc_file;
+    Heap heap{1024 * 1024 * 100}; // 100 MB heap
     std::stack<Frame> stack;
-    DValue* none_obj = new DValue();
+    HeapObject* none_obj = new HeapObject();
 
-    void print(DValue* value, std::ostream& out);
+    void print(HeapObject* value, std::ostream& out);
+
+    HeapObject* concat(HeapObject* first, HeapObject* second);
 };
 
 struct Frame {
     const FunctionScheme* scheme;
     size_t return_index;
-    std::vector<DValue*> args;
-    std::vector<DValue*> locals;
-    std::vector<DValue*> captured;
-    std::vector<DValue*> stack;
+    std::vector<DRef*> args;
+    std::vector<DRef*> locals;
+    std::vector<DRef*> captured;
+    std::vector<HeapObject*> stack;
 
-    void push(DValue* value);
-    DValue* pop();
+    void push(HeapObject* value);
+    HeapObject* pop();
 
-    Frame(const Runtime* runtime, const FunctionScheme* scheme, size_t return_index,
-          const std::vector<DValue*>& arg_objs = {}, const std::vector<DValue*> capture = {})
+    Frame(Runtime* runtime, const FunctionScheme* scheme, size_t return_index,
+          const std::vector<HeapObject*>& arg_objs = {}, const std::vector<DRef*>& capture = {})
         : scheme(scheme),
           return_index(return_index),
           args(scheme->args_number),
@@ -82,16 +50,16 @@ struct Frame {
           captured(capture) {
 
         for (size_t loc_id = 0; loc_id < scheme->locals_number; ++loc_id) {
-            locals[loc_id] = make_ref(runtime->none_obj);
+            locals[loc_id] = runtime->heap.make_ref(runtime->heap.make_none());
         }
 
         for (size_t arg_id = 0; arg_id < scheme->args_number; ++arg_id) {
-            args[arg_id] = make_ref(arg_objs[arg_id]);
+            args[arg_id] = runtime->heap.make_ref(arg_objs[arg_id]);
         }
     };
 
     // DValue*& operator[](Location loc);
-    DValue* operator[](Location loc);
+    HeapObject* operator[](Location loc);
 };
 
 } // namespace sm
