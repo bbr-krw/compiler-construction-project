@@ -115,7 +115,9 @@ void BcCompiler::visit(const IdentNode& n) {
     }
 }
 
-void BcCompiler::visit(const IntLitNode& n) { emit(bc_1op(BC_CONST, (uint32_t)n.value)); }
+void BcCompiler::visit(const IntLitNode& n) {
+    emit(bc_1op(BC_CONST, (uint32_t)n.value));
+}
 
 void BcCompiler::visit(const BodyNode& b) {
     current_function().push_scope();
@@ -134,11 +136,11 @@ void BcCompiler::visit(const FuncLitNode& fn) {
     }
 
     std::vector<Bytecode> outer_buff = std::move(code_buff);
-    code_buff = {};
+    code_buff                        = {};
     push_function(args);
     fn.body->accept(*this);
     int fn_idx = pop_function();
-    code_buff = std::move(outer_buff);
+    code_buff  = std::move(outer_buff);
     emit(bc_1op(BC_CLOSURE, fn_idx));
 }
 
@@ -184,7 +186,9 @@ void BcCompiler::visit(const BinOpNode& b) {
     emit(bc_1op(BC_BINOP, binop_reencode[static_cast<size_t>(b.op)]));
 }
 
-void BcCompiler::visit(const BoolLitNode& n) { emit(bc_1op(BC_BOOL, n.value)); }
+void BcCompiler::visit(const BoolLitNode& n) {
+    emit(bc_1op(BC_BOOL, n.value));
+}
 
 void BcCompiler::visit(const IsNode& n) {
     static uint32_t type_reencode[] = {
@@ -208,7 +212,9 @@ void BcCompiler::visit(const AssignNode& n) {
     emit(bc_0op(BC_STD));
 }
 
-void BcCompiler::visit(const NoneLitNode&) { emit(bc_0op(BC_NONE)); }
+void BcCompiler::visit(const NoneLitNode&) {
+    emit(bc_0op(BC_NONE));
+}
 
 void BcCompiler::visit(const ArrayLitNode& ar) {
     emit(bc_0op(BC_ARRAY));
@@ -242,7 +248,9 @@ void BcCompiler::visit(const TupleLitNode& t) {
     emit(bc_1op(BC_TUPLE, scheme_index));
 }
 
-void BcCompiler::visit(const TupleElemNode&) { throw std::runtime_error("Unreachable"); }
+void BcCompiler::visit(const TupleElemNode&) {
+    throw std::runtime_error("Unreachable");
+}
 
 void BcCompiler::visit(const IndexNode& i) {
     i.base->accept(*this);
@@ -282,7 +290,9 @@ void BcCompiler::visit(const IfNode& n) {
     }
 }
 
-void BcCompiler::visit(const IfShortNode& n) { compileIfThen(*n.cond, *n.stmt); }
+void BcCompiler::visit(const IfShortNode& n) {
+    compileIfThen(*n.cond, *n.stmt);
+}
 
 void BcCompiler::visit(const WhileNode& n) {
     // L_ENTRY: <cond> CJMPZ L_EXIT <body> JMP L_ENTRY L_EXIT:
@@ -336,8 +346,8 @@ void BcCompiler::visit(const ForIterNode& n) {
     Location iter_local, var_local;
     {
         auto locals = current_function().push_scope({n.iter, ""});
-        var_local  = locals[0];
-        iter_local = locals[1];
+        var_local   = locals[0];
+        iter_local  = locals[1];
     }
     emit(bc_1op(BC_CONST, 0));
     emit(bc_1op(BC_ST, packLock(iter_local)));

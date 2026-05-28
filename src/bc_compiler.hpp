@@ -62,24 +62,24 @@ private:
     sm::BcFile bc_file;
     std::vector<Function> telescope;
     std::vector<Bytecode> code_buff;
-    int                   label_counter = 0;
-    std::vector<int>      loop_exit_labels;
+    int label_counter = 0;
+    std::vector<int> loop_exit_labels;
 
     Function& current_function() { return telescope.back(); }
-    void      emit(const Bytecode& bc) { code_buff.push_back(bc); }
-    int       new_label() { return label_counter++; }
-    void      emit_label(int id) { emit(bc_1op(BC_LABEL, static_cast<uint32_t>(id))); }
+    void emit(const Bytecode& bc) { code_buff.push_back(bc); }
+    int new_label() { return label_counter++; }
+    void emit_label(int id) { emit(bc_1op(BC_LABEL, static_cast<uint32_t>(id))); }
 
-    static void             resolve_labels(std::vector<Bytecode>& code);
-    void                    push_function(const std::vector<std::string>& args);
-    int                     pop_function();
+    static void resolve_labels(std::vector<Bytecode>& code);
+    void push_function(const std::vector<std::string>& args);
+    int pop_function();
     std::optional<Location> capture(const std::string& name, size_t frame_index);
-    void                    compileIfThen(const ASTNode& pred, const ASTNode& then);
+    void compileIfThen(const ASTNode& pred, const ASTNode& then);
 
 public:
     explicit BcCompiler() = default;
 
-    sm::BcFile              compile(const ASTNode& root);
+    sm::BcFile compile(const ASTNode& root);
     std::optional<Location> resolve(const std::string& name);
 
     void visit(const ProgramNode&) override;

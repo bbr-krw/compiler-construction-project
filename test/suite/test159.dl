@@ -1,0 +1,11 @@
+var make_cycle := func is
+    var big := [];
+    for j in 1..10 loop
+        big[j] := j
+    end;
+    var f := none;
+    f := func => f
+end;
+for i in 1..10000 loop
+    make_cycle()
+end

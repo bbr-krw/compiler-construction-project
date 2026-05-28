@@ -82,12 +82,12 @@ DValue* concat(DValue* first, DValue* second) {
     __builtin_unreachable();
 }
 
-void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
+void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
     DValue* return_value;
 
     Frame initial_frame;
 
-    const auto* main_scheme    = &bcFile.functions[bcFile.main_function_index];
+    const auto* main_scheme    = &bc_file.functions[bc_file.main_function_index];
     initial_frame.scheme       = main_scheme;
     initial_frame.return_index = std::numeric_limits<size_t>::max();
     initial_frame.captured     = {};
@@ -307,7 +307,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
 
                 frame.push(raw_tuple->elements[-1 - index]);
             } else {
-                const std::string& name = bcFile.strings.at(index);
+                const std::string& name = bc_file.strings.at(index);
                 const auto& field_names = raw_tuple->scheme->field_names;
                 const size_t tuple_index =
                     std::find(field_names.begin(), field_names.end(), name) - field_names.begin();
@@ -364,7 +364,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
 
                 raw_tuple->elements[index] = element;
             } else {
-                const std::string& name = bcFile.strings.at(-1 - index);
+                const std::string& name = bc_file.strings.at(-1 - index);
                 const auto& field_names = raw_tuple->scheme->field_names;
                 const size_t tuple_index =
                     std::find(field_names.begin(), field_names.end(), name) - field_names.begin();
@@ -421,13 +421,13 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
 
         case BC_STRING: {
             const size_t index = imm32(bc);
-            DValue* string     = make_string(bcFile.strings[index]);
+            DValue* string     = make_string(bc_file.strings[index]);
             frame.push(string);
             break;
         }
 
         case BC_TUPLE: {
-            const TupleScheme* scheme = &bcFile.tuples[imm32(bc)];
+            const TupleScheme* scheme = &bc_file.tuples[imm32(bc)];
 
             std::vector<DValue*> elements;
             for (size_t i = 0; i < scheme->field_names.size(); i++) {
@@ -521,7 +521,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
         }
 
         case BC_CLOSURE: {
-            const FunctionScheme* scheme = &bcFile.functions[imm32(bc)];
+            const FunctionScheme* scheme = &bc_file.functions[imm32(bc)];
 
             std::vector<DValue**> captured;
             for (auto& loc : scheme->capture) {

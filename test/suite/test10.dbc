@@ -1,0 +1,17 @@
+proto "<main>" params=0 regs=8 cells=0
+consts 1
+  str "outer"
+upvals 0
+code 10
+  LOADK a=0 b=0
+  MOVE a=1 b=0
+  MOVE a=2 b=1
+  MOVE a=3 b=2
+  MOVE a=6 b=1
+  MOVE a=4 b=6
+  MOVE a=7 b=3
+  MOVE a=5 b=7
+  PRINT a=4 b=2
+  RETURNNONE
+protos 0
+endproto

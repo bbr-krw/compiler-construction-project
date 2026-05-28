@@ -19,11 +19,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Sanitizers")
             -g
             -fno-omit-frame-pointer
             -fsanitize=address,undefined
-            -fno-sanitize=leak
         )
         add_link_options(
             -fsanitize=address,undefined
-            -fno-sanitize=leak
         )
     else()
         message(FATAL_ERROR "Sanitizers build type is only supported with GCC or Clang")
@@ -104,16 +102,19 @@ target_link_libraries(dbci PRIVATE sm_lib sema_lib)
 enable_testing()
 find_package(GTest REQUIRED)
 
+# Maximum test number in the suite (exclusive upper bound for ::testing::Range)
+set(SUITE_MAX_TEST 166)
+
 # ── Lexer suite tests ──────────────────────────────────────────────────────────
 add_executable(lexer_suite_tests test/lexer_suite_test.cpp)
 target_link_libraries(lexer_suite_tests PRIVATE GTest::gtest GTest::gtest_main parse_lib)
-target_compile_definitions(lexer_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
+target_compile_definitions(lexer_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite" SUITE_MAX_TEST=${SUITE_MAX_TEST})
 add_test(NAME LexerSuiteTests COMMAND lexer_suite_tests)
 
 # ── Parser suite tests ─────────────────────────────────────────────────────────
 add_executable(parser_suite_tests test/parser_suite_test.cpp)
 target_link_libraries(parser_suite_tests PRIVATE GTest::gtest GTest::gtest_main parse_lib)
-target_compile_definitions(parser_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
+target_compile_definitions(parser_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite" SUITE_MAX_TEST=${SUITE_MAX_TEST})
 add_test(NAME ParserSuiteTests COMMAND parser_suite_tests)
 
 # ── Semantic analyzer unit tests ───────────────────────────────────────────────
@@ -124,13 +125,13 @@ add_test(NAME SemaTests COMMAND sema_tests)
 # ── Interpreter suite tests ────────────────────────────────────────────────────
 add_executable(interp_suite_tests test/interp_suite_test.cpp)
 target_link_libraries(interp_suite_tests PRIVATE GTest::gtest GTest::gtest_main interp_lib sema_lib)
-target_compile_definitions(interp_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
+target_compile_definitions(interp_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite" SUITE_MAX_TEST=${SUITE_MAX_TEST})
 add_test(NAME InterpSuiteTests COMMAND interp_suite_tests)
 
 # ── SM interpreter suite tests ────────────────────────────────────────────────────
 add_executable(dbci_suite_tests test/dbci_suite_test.cpp)
 target_link_libraries(dbci_suite_tests PRIVATE GTest::gtest GTest::gtest_main sm_lib sema_lib)
-target_compile_definitions(dbci_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite")
+target_compile_definitions(dbci_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite" SUITE_MAX_TEST=${SUITE_MAX_TEST})
 add_test(NAME dbciSuiteTests COMMAND dbci_suite_tests)
 
 # ── clang-format targets ───────────────────────────────────────────────────────
