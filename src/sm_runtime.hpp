@@ -48,24 +48,44 @@ DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue**>&
 
 float get_float(const DValue& value);
 
+struct Frame;
+
+struct Runtime {
+    std::vector<Frame> stack;
+    DValue* none_obj = new DValue();
+
+    void print(DValue* value, std::ostream& out);
+};
+
 struct Frame {
     const FunctionScheme* scheme;
     size_t return_index;
+    std::vector<DValue**> args;
+    std::vector<DValue**> locals;
     std::vector<DValue**> captured;
-    std::vector<DValue*> args;
-    std::vector<DValue*> locals;
     std::vector<DValue*> stack;
 
     void push(DValue* value);
     DValue* pop();
 
+    Frame(const Runtime* runtime, const FunctionScheme* scheme, size_t return_index,
+          const std::vector<DValue*>& arg_objs = {}, const std::vector<DValue**> capture = {})
+        : scheme(scheme),
+          return_index(return_index),
+          args(scheme->args_number),
+          locals(scheme->locals_number),
+          captured(capture) {
+
+        for (size_t loc_id = 0; loc_id < scheme->locals_number; ++loc_id) {
+            locals[loc_id] = new DValue*(runtime->none_obj);
+        }
+
+        for (size_t arg_id = 0; arg_id < scheme->args_number; ++arg_id) {
+            args[arg_id] = new DValue*(arg_objs[arg_id]);
+        }
+    };
+
     DValue*& operator[](Location loc);
-};
-
-struct Runtime {
-    std::vector<Frame> stack;
-
-    void print(DValue* value, std::ostream& out);
 };
 
 } // namespace sm

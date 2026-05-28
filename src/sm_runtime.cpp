@@ -88,10 +88,10 @@ DValue* Frame::pop() {
 DValue*& Frame::operator[](Location loc) {
     switch (loc.type) {
     case LOCAL: {
-        return locals[loc.index];
+        return *locals[loc.index];
     }
     case ARGUMENT: {
-        return args[loc.index];
+        return *args[loc.index];
     }
     case CAPTURED: {
         return *captured[loc.index];

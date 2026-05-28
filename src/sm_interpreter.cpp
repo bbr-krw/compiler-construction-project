@@ -85,15 +85,8 @@ DValue* concat(DValue* first, DValue* second) {
 void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
     DValue* return_value;
 
-    Frame initial_frame;
-
-    const auto* main_scheme    = &bc_file.functions[bc_file.main_function_index];
-    initial_frame.scheme       = main_scheme;
-    initial_frame.return_index = std::numeric_limits<size_t>::max();
-    initial_frame.captured     = {};
-    initial_frame.args         = {};
-    initial_frame.locals.assign(main_scheme->locals_number, new DValue());
-    initial_frame.stack = {};
+    const auto* main_scheme = &bc_file.functions[bc_file.main_function_index];
+    Frame initial_frame(runtime, main_scheme, std::numeric_limits<size_t>::max());
 
     runtime->stack.push_back(initial_frame);
 
@@ -111,7 +104,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
 
         Bytecode bc = frame.scheme->code[bc_index];
         bool jumped = false;
-        // std::cerr << "HERE: " << bc_index << ' ' << frame.stack.size() << '\n';
+        std::cerr << "HERE: " << bc_index << ' ' << frame.stack.size() << '\n';
 
         switch (static_cast<BytecodeSignatures>(bc & 0xff)) {
         case BC_BINOP: {
@@ -536,29 +529,22 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         case BC_CALLC: {
             const size_t args_count = imm32(bc);
 
-            DValue* func = frame.pop();
+            DValue* func    = frame.pop();
+            DFunc* raw_func = reinterpret_cast<DFunc*>(func->value);
             if (func->type != Type::Func) {
                 throw std::runtime_error("Function should be of function type");
             }
-
-            DFunc* raw_func = reinterpret_cast<DFunc*>(func->value);
-
-            Frame new_frame;
-            new_frame.scheme       = raw_func->scheme;
-            new_frame.return_index = bc_index + 1;
-            new_frame.captured.assign(raw_func->capture,
-                                      raw_func->capture + raw_func->scheme->capture.size());
-            new_frame.locals.resize(raw_func->scheme->locals_number, new DValue());
-
             if (args_count != raw_func->scheme->args_number) {
                 throw std::runtime_error("Function called with invalid args number");
             }
 
-            for (size_t i = 0; i < raw_func->scheme->args_number; i++) {
-                new_frame.args.push_back(frame.pop());
+            std::vector<DValue*> args(args_count);
+            for (int arg_id = args_count - 1; arg_id >= 0; --arg_id) {
+                args[arg_id] = frame.pop();
             }
-            std::reverse(new_frame.args.begin(), new_frame.args.end());
-
+            std::vector<DValue**> capture(raw_func->capture,
+                                          raw_func->capture + raw_func->scheme->capture.size());
+            Frame new_frame(runtime, raw_func->scheme, bc_index + 1, args, capture);
             runtime->stack.push_back(new_frame);
 
             bc_index = 0;
