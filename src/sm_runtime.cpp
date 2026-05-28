@@ -114,7 +114,7 @@ DValue* Frame::operator[](Location loc) {
     case CAPTURED: {
         return captured[loc.index];
     }
-    __builtin_unreachable();
+        __builtin_unreachable();
     }
 }
 
@@ -193,7 +193,6 @@ void Runtime::print(DValue* value, std::ostream& os) {
         os << "__ref__";
         break;
     }
-
     }
 }
 

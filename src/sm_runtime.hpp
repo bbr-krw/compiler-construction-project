@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <cstring>
 #include <map>
+#include <stack>
 #include <string>
 #include <vector>
-#include <stack>
 
 namespace sm {
 

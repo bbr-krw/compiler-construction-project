@@ -547,7 +547,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
                 args[arg_id] = resolve_ref(frame.pop());
             }
             std::vector<DValue*> capture(raw_func->capture,
-                                          raw_func->capture + raw_func->scheme->capture.size());
+                                         raw_func->capture + raw_func->scheme->capture.size());
             Frame new_frame(runtime, raw_func->scheme, bc_index + 1, args, capture);
             runtime->stack.push(new_frame);
 

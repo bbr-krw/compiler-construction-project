@@ -244,7 +244,6 @@ void BcCompiler::visit(const ExprStmtNode& n) {
     emit(bc_0op(BC_DROP)); // drop value loaded by last expr
 }
 
-
 void BcCompiler::visit(const NoneLitNode&) {
     emit(bc_0op(BC_NONE));
 }
