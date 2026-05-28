@@ -182,8 +182,35 @@ void BcCompiler::visit(const BinOpNode& b) {
         3,  // DIV
     };
     b.left->accept(*this);
-    b.right->accept(*this);
-    emit(bc_1op(BC_BINOP, binop_reencode[static_cast<size_t>(b.op)]));
+    switch (b.op) {
+    case BinOpNode::Op::AND: {
+        int L1 = new_label();
+        int L2 = new_label();
+        emit(bc_1op(BC_CJMPZ, L1));
+        b.right->accept(*this);
+        emit(bc_1op(BC_JMP, L2));
+        emit_label(L1);
+        emit(bc_1op(BC_BOOL, 0));
+        emit_label(L2);
+        break;
+    }
+    case BinOpNode::Op::OR: {
+        int L1 = new_label();
+        int L2 = new_label();
+        emit(bc_1op(BC_CJMPZ, L1));
+        emit(bc_1op(BC_BOOL, 1));
+        emit(bc_1op(BC_JMP, L2));
+        emit_label(L1);
+        b.right->accept(*this);
+        emit_label(L2);
+        break;
+    }
+    default: {
+        b.right->accept(*this);
+        emit(bc_1op(BC_BINOP, binop_reencode[static_cast<size_t>(b.op)]));
+        break;
+    }
+    }
 }
 
 void BcCompiler::visit(const BoolLitNode& n) {
