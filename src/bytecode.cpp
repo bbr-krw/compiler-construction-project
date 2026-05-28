@@ -28,6 +28,9 @@ std::ostream& operator<<(std::ostream& os, const Type& type) {
     case Type::Func:
         os << "FUNC";
         break;
+    case Type::Ref:
+        os << "REF";
+        break;
     }
     return os;
 }

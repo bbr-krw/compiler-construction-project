@@ -20,6 +20,7 @@ DValue* concat(DValue* first, DValue* second) {
     }
 
     switch (first->type) {
+    case Type::Ref:
     case Type::None:
     case Type::Int:
     case Type::Real:
@@ -105,12 +106,15 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
 
         switch (sig(bc)) {
         case BC_BINOP: {
-            DValue* second = frame.pop();
-            DValue* first  = frame.pop();
+            DValue* second = resolve_ref(frame.pop());
+            DValue* first  = resolve_ref(frame.pop());
 
             int32_t op = imm32(bc);
 
             switch (first->type) {
+            case Type::Ref: {
+                throw std::runtime_error("binop with ref");
+            }
             case Type::None: {
                 throw std::runtime_error("binop with none");
             }
@@ -248,7 +252,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_ISTYPE: {
-            DValue* val        = frame.pop();
+            DValue* val        = resolve_ref(frame.pop());
             Type expected_type = static_cast<Type>(imm32(bc));
             frame.push(make_bool(val->type == expected_type));
             break;
@@ -261,12 +265,12 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_LDA: {
-            const auto index = frame.pop();
+            const auto index = resolve_ref(frame.pop());
             if (index->type != Type::Int) {
                 throw std::runtime_error("Index should be an integer value");
             }
 
-            const auto array = frame.pop();
+            const auto array = resolve_ref(frame.pop());
             if (array->type != Type::Array) {
                 throw std::runtime_error("Array should be of array type");
             }
@@ -276,14 +280,14 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
 
             DValue* value = raw_array->contains(raw_index)
                                 ? raw_array->at(raw_index)
-                                : ((*raw_array)[raw_index] = make_none());
+                                : ((*raw_array)[raw_index] = make_ref(runtime->none_obj));
             frame.push(value);
 
             break;
         }
 
         case BC_LDT: {
-            const auto tuple = frame.pop();
+            const auto tuple = resolve_ref(frame.pop());
             if (tuple->type != Type::Tuple) {
                 throw std::runtime_error("Tuple should be of tuple type");
             }
@@ -312,19 +316,19 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_ST: {
-            frame[loc(bc)] = frame.pop();
+            change_ref(frame[loc(bc)], resolve_ref(frame.pop()));
             break;
         }
 
         case BC_STA: {
-            const auto element = frame.pop();
+            const auto element = resolve_ref(frame.pop());
 
-            const auto index = frame.pop();
+            const auto index = resolve_ref(frame.pop());
             if (index->type != Type::Int) {
                 throw std::runtime_error("Index should be an integer value");
             }
 
-            const auto array = frame.pop();
+            const auto array = resolve_ref(frame.pop());
             if (array->type != Type::Array) {
                 throw std::runtime_error("Array should be of array type");
             }
@@ -332,7 +336,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             DArray* raw_array = reinterpret_cast<DArray*>(array->value);
             size_t raw_index  = static_cast<size_t>(index->value);
 
-            raw_array->emplace(raw_index, element);
+            raw_array->emplace(raw_index, make_ref(element));
 
             break;
         }
@@ -340,7 +344,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         case BC_STT: {
             const auto element = frame.pop();
 
-            const auto tuple = frame.pop();
+            const auto tuple = resolve_ref(frame.pop());
             if (tuple->type != Type::Tuple) {
                 throw std::runtime_error("Tuple should be of tuple type");
             }
@@ -369,9 +373,12 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_STD: {
-            DValue* src  = frame.pop();
+            DValue* src  = resolve_ref(frame.pop());
             DValue* dest = frame.pop();
-            *dest        = *src;
+            if (dest->type != Type::Ref) {
+                throw std::runtime_error("assingment to non-ref object");
+            }
+            dest->value = reinterpret_cast<uint64_t>(src);
             break;
         }
 
@@ -421,7 +428,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
 
             std::vector<DValue*> elements;
             for (size_t i = 0; i < scheme->field_names.size(); i++) {
-                elements.push_back(frame.pop());
+                elements.push_back(resolve_ref(frame.pop()));
             }
             std::reverse(elements.begin(), elements.end());
 
@@ -462,8 +469,8 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_RNGSPC: {
-            DValue* iterator = frame.pop();
-            DValue* target   = frame.pop();
+            DValue* iterator = resolve_ref(frame.pop());
+            DValue* target   = resolve_ref(frame.pop());
             if (target->type != Type::Int || iterator->type != Type::Int) {
                 throw std::runtime_error("unexpected type for range limits");
             }
@@ -474,7 +481,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_LENGTH: {
-            DValue* iterable = frame.pop();
+            DValue* iterable = resolve_ref(frame.pop());
             switch (iterable->type) {
             case Type::Array: {
                 DArray* arr = reinterpret_cast<DArray*>(iterable->value);
@@ -498,7 +505,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         }
 
         case BC_CJMPZ: {
-            DValue* condition = frame.pop();
+            DValue* condition = resolve_ref(frame.pop());
             if (condition->type != Type::Bool) {
                 throw std::runtime_error("unexpected condition type");
             }
@@ -513,9 +520,9 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         case BC_CLOSURE: {
             const FunctionScheme* scheme = &bc_file.functions[imm32(bc)];
 
-            std::vector<DValue**> captured;
+            std::vector<DValue*> captured;
             for (auto& loc : scheme->capture) {
-                captured.push_back(&frame[loc]);
+                captured.push_back(frame[loc]);
             }
 
             DValue* func = make_function(scheme, captured);
@@ -526,7 +533,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         case BC_CALLC: {
             const size_t args_count = imm32(bc);
 
-            DValue* func    = frame.pop();
+            DValue* func    = resolve_ref(frame.pop());
             DFunc* raw_func = reinterpret_cast<DFunc*>(func->value);
             if (func->type != Type::Func) {
                 throw std::runtime_error("Function should be of function type");
@@ -537,9 +544,9 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
 
             std::vector<DValue*> args(args_count);
             for (int arg_id = args_count - 1; arg_id >= 0; --arg_id) {
-                args[arg_id] = frame.pop();
+                args[arg_id] = resolve_ref(frame.pop());
             }
-            std::vector<DValue**> capture(raw_func->capture,
+            std::vector<DValue*> capture(raw_func->capture,
                                           raw_func->capture + raw_func->scheme->capture.size());
             Frame new_frame(runtime, raw_func->scheme, bc_index + 1, args, capture);
             runtime->stack.push(new_frame);
@@ -552,7 +559,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
         case BC_PRINT: {
             const size_t args_count = imm32(bc);
             for (size_t arg = 0; arg < args_count; ++arg) {
-                runtime->print(frame.pop(), out);
+                runtime->print(resolve_ref(frame.pop()), out);
                 out << (arg + 1 < args_count ? " " : "\n");
             }
             break;

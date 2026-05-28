@@ -48,20 +48,25 @@ DValue* make_tuple(const TupleScheme* scheme, const std::vector<DValue*>& elemen
     auto tuple        = reinterpret_cast<DTuple*>(new uint8_t[tuple_size]);
     tuple->scheme     = scheme;
     for (size_t i = 0; i < elements.size(); i++) {
-        tuple->elements[i] = elements[i];
+        tuple->elements[i] = make_ref(elements[i]);
     }
     return new DValue{
         .type = Type::Tuple, .mark = false, .value = reinterpret_cast<uint64_t>(tuple)};
 }
 
-DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue**>& captured) {
+DValue* make_function(const FunctionScheme* scheme, const std::vector<DValue*>& captured) {
     size_t func_size = sizeof(DFunc) + captured.size() * sizeof(DValue**);
     auto func        = reinterpret_cast<DFunc*>(new uint8_t[func_size]);
     func->scheme     = scheme;
     for (size_t i = 0; i < captured.size(); i++) {
+        assert(captured[i]->type == Type::Ref);
         func->capture[i] = captured[i];
     }
     return new DValue{.type = Type::Func, .mark = false, .value = reinterpret_cast<uint64_t>(func)};
+}
+
+DValue* make_ref(DValue* ref) {
+    return new DValue{.type = Type::Ref, .mark = false, .value = reinterpret_cast<uint64_t>(ref)};
 }
 
 float get_float(const DValue& value) {
@@ -85,19 +90,32 @@ DValue* Frame::pop() {
     return value;
 }
 
-DValue*& Frame::operator[](Location loc) {
+DValue* resolve_ref(DValue* val) {
+    if (val->type != Type::Ref) {
+        return val;
+    } else {
+        return resolve_ref(reinterpret_cast<DValue*>(val->value));
+    }
+}
+
+void change_ref(DValue* ref, DValue* val) {
+    assert(ref->type == Type::Ref);
+    ref->value = reinterpret_cast<uint64_t>(val);
+}
+
+DValue* Frame::operator[](Location loc) {
     switch (loc.type) {
     case LOCAL: {
-        return *locals[loc.index];
+        return locals[loc.index];
     }
     case ARGUMENT: {
-        return *args[loc.index];
+        return args[loc.index];
     }
     case CAPTURED: {
-        return *captured[loc.index];
-    }
+        return captured[loc.index];
     }
     __builtin_unreachable();
+    }
 }
 
 void Runtime::print(DValue* value, std::ostream& os) {
@@ -142,7 +160,7 @@ void Runtime::print(DValue* value, std::ostream& os) {
             }
             i++;
             // os << key << ":";
-            print(value, os);
+            print(resolve_ref(value), os);
         }
         os << "]";
         break;
@@ -160,7 +178,7 @@ void Runtime::print(DValue* value, std::ostream& os) {
                 os << tuple->scheme->field_names[i].value();
                 os << " := ";
             }
-            print(tuple->elements[i], os);
+            print(resolve_ref(tuple->elements[i]), os);
         }
         os << "}";
         break;
@@ -168,7 +186,14 @@ void Runtime::print(DValue* value, std::ostream& os) {
 
     case Type::Func: {
         os << "__func__";
+        break;
     }
+
+    case Type::Ref: {
+        os << "__ref__";
+        break;
+    }
+
     }
 }
 

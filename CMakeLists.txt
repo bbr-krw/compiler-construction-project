@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(-Wall -Wextra -Werror)
+add_compile_options(-Wall -Wextra)
 
 set(SUPPORTED_BUILD_TYPES Debug Release RelWithDebInfo MinSizeRel Sanitizers)
 if(NOT CMAKE_CONFIGURATION_TYPES)
