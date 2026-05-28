@@ -8,6 +8,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <stack>
 
 namespace sm {
 
@@ -51,7 +52,7 @@ float get_float(const DValue& value);
 struct Frame;
 
 struct Runtime {
-    std::vector<Frame> stack;
+    std::stack<Frame> stack;
     DValue* none_obj = new DValue();
 
     void print(DValue* value, std::ostream& out);

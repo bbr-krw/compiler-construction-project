@@ -88,7 +88,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
     const auto* main_scheme = &bc_file.functions[bc_file.main_function_index];
     Frame initial_frame(runtime, main_scheme, std::numeric_limits<size_t>::max());
 
-    runtime->stack.push_back(initial_frame);
+    runtime->stack.push(initial_frame);
 
     size_t bc_index = 0;
 
@@ -97,16 +97,13 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             break;
         }
 
-        Frame& frame = runtime->stack.back();
-        if (bc_index == frame.scheme->code.size()) {
-            break;
-        }
+        Frame& frame = runtime->stack.top();
 
         Bytecode bc = frame.scheme->code[bc_index];
         bool jumped = false;
-        std::cerr << "HERE: " << bc_index << ' ' << frame.stack.size() << '\n';
+        // std::cerr << "HERE: " << bc_index << ' ' << frame.stack.size() << '\n';
 
-        switch (static_cast<BytecodeSignatures>(bc & 0xff)) {
+        switch (sig(bc)) {
         case BC_BINOP: {
             DValue* second = frame.pop();
             DValue* first  = frame.pop();
@@ -444,9 +441,9 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             bc_index = frame.return_index;
             jumped   = true;
 
-            runtime->stack.pop_back();
+            runtime->stack.pop();
             if (not runtime->stack.empty()) {
-                runtime->stack.back().push(return_value);
+                runtime->stack.top().push(return_value);
             }
 
             break;
@@ -545,7 +542,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             std::vector<DValue**> capture(raw_func->capture,
                                           raw_func->capture + raw_func->scheme->capture.size());
             Frame new_frame(runtime, raw_func->scheme, bc_index + 1, args, capture);
-            runtime->stack.push_back(new_frame);
+            runtime->stack.push(new_frame);
 
             bc_index = 0;
             jumped   = true;
@@ -567,6 +564,16 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
 
         if (not jumped) {
             bc_index++;
+        }
+
+        while (bc_index == runtime->stack.top().scheme->code.size()) {
+            bc_index = runtime->stack.top().return_index;
+            runtime->stack.pop();
+            if (not runtime->stack.empty()) {
+                runtime->stack.top().push(runtime->none_obj);
+            } else {
+                return;
+            }
         }
     }
 }
