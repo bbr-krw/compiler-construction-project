@@ -214,6 +214,7 @@ void BcCompiler::visit(const AssignNode& n) {
 
 void BcCompiler::visit(const ExprStmtNode& n) {
     n.expr->accept(*this);
+    emit(bc_0op(BC_DROP)); // drop value loaded by last expr
 }
 
 
