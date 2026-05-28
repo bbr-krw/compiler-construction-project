@@ -1,0 +1,22 @@
+// Sieve of Eratosthenes: print all primes up to 30
+var n := 30
+var sieve := []
+for i in 2..n loop
+    sieve[i] := true
+end
+var i := 2
+while i * i <= n loop
+    if sieve[i] then
+        var j := i * i
+        while j <= n loop
+            sieve[j] := false
+            j := j + i
+        end
+    end
+    i := i + 1
+end
+for i in 2..n loop
+    if sieve[i] then
+        print i
+    end
+end

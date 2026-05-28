@@ -1,0 +1,16 @@
+// GCD via Euclidean algorithm and LCM derived from it
+var gcd := func(a, b) is
+    while b /= 0 loop
+        var t := b
+        b := a - (a / b) * b
+        a := t
+    end
+    return a
+end
+
+var lcm := func(a, b) => (a / gcd(a, b)) * b
+
+print gcd(48, 18)
+print gcd(100, 75)
+print lcm(4, 6)
+print lcm(12, 15)

@@ -1,0 +1,18 @@
+// Insertion sort (1-indexed)
+var isort := func(arr, n) is
+    var i := 2
+    while i <= n loop
+        var key := arr[i]
+        var j := i - 1
+        while j >= 1 and arr[j] > key loop
+            arr[j + 1] := arr[j]
+            j := j - 1
+        end
+        arr[j + 1] := key
+        i := i + 1
+    end
+end
+
+var data := [64, 34, 25, 12, 22, 11, 90]
+isort(data, 7)
+print data[1], data[2], data[3], data[4], data[5], data[6], data[7]

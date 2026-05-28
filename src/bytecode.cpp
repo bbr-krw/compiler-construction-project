@@ -33,11 +33,11 @@ std::ostream& operator<<(std::ostream& os, const Type& type) {
 }
 
 uint32_t packLock(Location loc) {
-    return *reinterpret_cast<uint32_t*>(&loc);
+    return std::bit_cast<uint32_t>(loc);
 }
 
 Location unpackLock(uint32_t data) {
-    return *reinterpret_cast<Location*>(&data);
+    return std::bit_cast<Location>(data);
 }
 
 std::ostream& operator<<(std::ostream& os, const Location& loc) {

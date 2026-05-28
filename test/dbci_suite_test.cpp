@@ -57,7 +57,7 @@ TEST_P(DbciSuiteTest, RunAndCompareGolden) {
     EXPECT_EQ(out.str(), expected) << "output mismatch for test" << n;
 }
 
-INSTANTIATE_TEST_SUITE_P(Suite, DbciSuiteTest, ::testing::Range(1, 159),
+INSTANTIATE_TEST_SUITE_P(Suite, DbciSuiteTest, ::testing::Range(1, SUITE_MAX_TEST),
                          [](const ::testing::TestParamInfo<int>& i) {
                              return "test" + std::to_string(i.param);
                          });

@@ -1,0 +1,17 @@
+// Fibonacci with memoization (top-down DP)
+var memo := []
+for i in 0..30 loop
+    memo[i] := -1
+end
+var fib := func(n) is
+    if n <= 1 then
+        return n
+    end
+    if memo[n] = -1 then
+        memo[n] := fib(n - 1) + fib(n - 2)
+    end
+    return memo[n]
+end
+print fib(10)
+print fib(20)
+print fib(30)
