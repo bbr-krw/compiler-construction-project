@@ -98,6 +98,7 @@ public:
     void visit(const BoolLitNode&) override;
     void visit(const IsNode&) override;
     void visit(const AssignNode&) override;
+    void visit(const ExprStmtNode&) override;
     void visit(const NoneLitNode&) override;
     void visit(const ArrayLitNode&) override;
     void visit(const TupleLitNode&) override;

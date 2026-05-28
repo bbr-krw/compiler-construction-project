@@ -84,6 +84,10 @@ void SemanticAnalyzer::visit(const AssignNode& n) {
     accept(n.rhs.get());
 }
 
+void SemanticAnalyzer::visit(const ExprStmtNode& n) {
+    accept(n.expr.get());
+}
+
 void SemanticAnalyzer::visit(const IfNode& n) {
     accept(n.cond.get());
     accept(n.then_body.get());

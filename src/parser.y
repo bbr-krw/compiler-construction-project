@@ -99,7 +99,12 @@ body : stmt_list { $$ = std::move($1); } ;
 stmt
     : decl          { $$ = std::move($1); }
     | assign        { $$ = std::move($1); }
-    | postfix       { $$ = std::move($1); }
+    | postfix
+        {
+            auto n = std::make_unique<ExprStmtNode>(Location{@1.begin.line, @1.begin.column});
+            n->expr = std::move($1);
+            $$ = std::move(n);
+        }
     | if_stmt       { $$ = std::move($1); }
     | if_short_stmt { $$ = std::move($1); }
     | loop_stmt     { $$ = std::move($1); }

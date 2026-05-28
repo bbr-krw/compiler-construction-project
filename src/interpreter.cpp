@@ -136,6 +136,10 @@ void Interpreter::visit(const AssignNode& n) {
     assign_lvalue(*n.lhs, eval(*n.rhs));
 }
 
+void Interpreter::visit(const ExprStmtNode& n) {
+    n.expr->accept(*this);
+}
+
 void Interpreter::assign_lvalue(const ASTNode& lhs, DValue rhs) {
     if (auto* id = dynamic_cast<const IdentNode*>(&lhs)) {
         (*env_[env_.size() - 1 - id->resolved_depth])[id->ident_name] = std::move(rhs);

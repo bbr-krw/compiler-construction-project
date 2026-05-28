@@ -24,6 +24,7 @@ struct SemanticAnalyzer : ASTVisitorBase<SemanticAnalyzer> {
     void visit(const VarDeclNode&) override;
     void visit(const VarDefNode&) override;
     void visit(const AssignNode&) override;
+    void visit(const ExprStmtNode&) override;
     void visit(const IfNode&) override;
     void visit(const IfShortNode&) override;
     void visit(const WhileNode&) override;

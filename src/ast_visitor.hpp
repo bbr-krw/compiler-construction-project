@@ -5,6 +5,7 @@ struct BodyNode;
 struct VarDeclNode;
 struct VarDefNode;
 struct AssignNode;
+struct ExprStmtNode;
 struct IfNode;
 struct IfShortNode;
 struct WhileNode;
@@ -42,6 +43,7 @@ struct IASTVisitor {
     virtual void visit(const VarDeclNode&)   = 0;
     virtual void visit(const VarDefNode&)    = 0;
     virtual void visit(const AssignNode&)    = 0;
+    virtual void visit(const ExprStmtNode&)  = 0;
     virtual void visit(const IfNode&)        = 0;
     virtual void visit(const IfShortNode&)   = 0;
     virtual void visit(const WhileNode&)     = 0;
@@ -78,6 +80,7 @@ template <typename Derived> struct ASTVisitorBase : IASTVisitor {
     void visit(const VarDeclNode&) override {}
     void visit(const VarDefNode&) override {}
     void visit(const AssignNode&) override {}
+    void visit(const ExprStmtNode&) override {}
     void visit(const IfNode&) override {}
     void visit(const IfShortNode&) override {}
     void visit(const WhileNode&) override {}

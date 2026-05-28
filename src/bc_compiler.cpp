@@ -212,6 +212,11 @@ void BcCompiler::visit(const AssignNode& n) {
     emit(bc_0op(BC_STD));
 }
 
+void BcCompiler::visit(const ExprStmtNode& n) {
+    n.expr->accept(*this);
+}
+
+
 void BcCompiler::visit(const NoneLitNode&) {
     emit(bc_0op(BC_NONE));
 }

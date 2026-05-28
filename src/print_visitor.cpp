@@ -67,6 +67,13 @@ void PrintVisitor::visit(const AssignNode& n) {
     recurse(n.rhs.get());
 }
 
+void PrintVisitor::visit(const ExprStmtNode& n) {
+    put_indent();
+    os_ << '[' << n.kind_name() << ']';
+    put_suffix(n);
+    recurse(n.expr.get());
+}
+
 void PrintVisitor::visit(const IfNode& n) {
     put_indent();
     os_ << '[' << n.kind_name() << ']';

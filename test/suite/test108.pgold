@@ -6,5 +6,6 @@
         [Body]  (loc 1:20)
           [Print]  (loc 2:5)
             [StrLit] no return  (loc 2:11)
-  [Call]  (loc 4:1)
-    [Ident] f108  (loc 4:1)
+  [ExprStmt]  (loc 4:1)
+    [Call]  (loc 4:1)
+      [Ident] f108  (loc 4:1)

@@ -30,5 +30,6 @@
     [IntLit] 1  (loc 9:10)
     [IntLit] 10000  (loc 9:13)
     [Body]  (loc 9:23)
-      [Call]  (loc 10:5)
-        [Ident] make_cycle  (loc 10:5)
+      [ExprStmt]  (loc 10:5)
+        [Call]  (loc 10:5)
+          [Ident] make_cycle  (loc 10:5)

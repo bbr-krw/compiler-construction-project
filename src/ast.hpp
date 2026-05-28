@@ -80,6 +80,13 @@ struct AssignNode : ASTNode {
     void accept(IASTVisitor& v) const override { v.visit(*this); }
 };
 
+struct ExprStmtNode : ASTNode {
+    std::unique_ptr<ASTNode> expr;
+    explicit ExprStmtNode(Location loc = {}) : ASTNode{loc} {}
+    std::string_view kind_name() const noexcept override { return "ExprStmt"; }
+    void accept(IASTVisitor& v) const override { v.visit(*this); }
+};
+
 struct IfNode : ASTNode {
     std::unique_ptr<ASTNode> cond;
     std::unique_ptr<ASTNode> then_body;
