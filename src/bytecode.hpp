@@ -1,7 +1,7 @@
 #pragma once
 
+#include <bit>
 #include <cassert>
-#include <cinttypes>
 #include <cstdint>
 #include <iomanip>
 #include <optional>
@@ -41,6 +41,10 @@ enum BytecodeSignatures : uint8_t {
     // ioperands: op, stack_operand: loperand, roperand
     // push result onto stack
     BC_BINOP = 0,
+
+    // ioperands: label_id
+    // pseudo-instruction stripped by resolve_labels()
+    BC_LABEL = 1,
 
     // ioperands: loc, stack_operand: none
     // loads value onto stack
@@ -189,23 +193,23 @@ static BytecodeSignatures sig(Bytecode bc) {
     return static_cast<BytecodeSignatures>(bc & 0xff);
 }
 
-static float raw_to_float(uint32_t val) {
-    return *reinterpret_cast<float*>(&val);
+[[maybe_unused]] static float raw_to_float(uint32_t val) {
+    return std::bit_cast<float>(val);
 }
 
-static uint32_t float_to_raw(float f) {
-    return *reinterpret_cast<uint32_t*>(&f);
+[[maybe_unused]] static uint32_t float_to_raw(float f) {
+    return std::bit_cast<uint32_t>(f);
 }
 
-static Bytecode bc_2op(BytecodeSignatures s, uint16_t op1, uint32_t op2) {
+[[maybe_unused]] static Bytecode bc_2op(BytecodeSignatures s, uint16_t op1, uint32_t op2) {
     return (static_cast<int64_t>(op2) << 32) | (static_cast<int32_t>(op1) << 16) | s;
 }
 
-static Bytecode bc_1op(BytecodeSignatures s, uint32_t op) {
+[[maybe_unused]] static Bytecode bc_1op(BytecodeSignatures s, uint32_t op) {
     return (static_cast<int64_t>(op) << 32) | s;
 }
 
-static Bytecode bc_0op(BytecodeSignatures s) {
+[[maybe_unused]] static Bytecode bc_0op(BytecodeSignatures s) {
     return s;
 }
 

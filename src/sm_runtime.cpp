@@ -1,5 +1,3 @@
-#pragma once
-
 #include "sm_runtime.hpp"
 
 #include "bytecode.hpp"
@@ -99,6 +97,7 @@ DValue*& Frame::operator[](Location loc) {
         return *captured[loc.index];
     }
     }
+    __builtin_unreachable();
 }
 
 void Runtime::print(DValue* value, std::ostream& os) {
@@ -159,7 +158,7 @@ void Runtime::print(DValue* value, std::ostream& os) {
 
             if (tuple->scheme->field_names[i].has_value()) {
                 os << tuple->scheme->field_names[i].value();
-                os << "=";
+                os << " := ";
             }
             print(tuple->elements[i], os);
         }

@@ -1,5 +1,3 @@
-#pragma once
-
 #include "sm_interpreter.hpp"
 
 #include "bytecode.hpp"
@@ -81,6 +79,7 @@ DValue* concat(DValue* first, DValue* second) {
         return sm::make_tuple(result_scheme, result_elements);
     }
     }
+    __builtin_unreachable();
 }
 
 void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
@@ -302,7 +301,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
 
             const auto index = imm32(bc);
             if (index < 0) {
-                if (-1 - index >= raw_tuple->scheme->field_names.size()) {
+                if (static_cast<size_t>(-1 - index) >= raw_tuple->scheme->field_names.size()) {
                     throw std::runtime_error("invalid tuple index");
                 }
 
@@ -359,7 +358,7 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
 
             const auto index = imm16_1(bc);
             if (index >= 0) {
-                if (index >= raw_tuple->scheme->field_names.size()) {
+                if (static_cast<size_t>(index) >= raw_tuple->scheme->field_names.size()) {
                     throw std::runtime_error("invalid tuple index");
                 }
 
@@ -575,6 +574,9 @@ void interprete(Runtime* runtime, const BcFile& bcFile, std::ostream& out) {
             }
             break;
         }
+
+        case BC_LABEL:
+            throw std::runtime_error("BC_LABEL encountered at runtime (compiler bug)");
         }
 
         if (not jumped) {
