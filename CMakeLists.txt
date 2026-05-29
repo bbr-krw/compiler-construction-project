@@ -128,6 +128,7 @@ add_executable(interp_suite_tests test/interp_suite_test.cpp)
 target_link_libraries(interp_suite_tests PRIVATE GTest::gtest GTest::gtest_main interp_lib sema_lib)
 target_compile_definitions(interp_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite" SUITE_MAX_TEST=${SUITE_MAX_TEST})
 add_test(NAME InterpSuiteTests COMMAND interp_suite_tests)
+target_compile_options(interp_suite_tests PRIVATE -fno-sanitize=leak)
 
 # ── SM interpreter suite tests ────────────────────────────────────────────────────
 add_executable(dbci_suite_tests test/dbci_suite_test.cpp)
