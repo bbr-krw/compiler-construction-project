@@ -1,0 +1,39 @@
+// Two pointers method to find segment with absolute value closed to N
+
+var abs := func(x) is
+    if x < 0 then
+        return -x
+    else
+        return x
+    end
+end
+
+var solution := func(n, target, arr) is
+    var l := 1;
+    var r := 1;
+    var sum := arr[1];
+    var ans := [abs(sum - target), 1, 1];
+    loop
+        if sum < target then
+            r := r + 1
+            if r >= n + 1 => exit
+            sum := sum + arr[r]
+        else
+            sum := sum - arr[l]
+            l := l + 1
+        end
+        if ans[1] > abs(sum - target) then
+            ans := [abs(sum - target), l, r]
+        end
+    end
+    return ans;
+end
+
+var tests := [
+    [3, 5, [1, 2, 3]],
+    [3, 6, [2, 4, 3]]
+]
+
+for test in tests loop
+    print solution(test[1], test[2], test[3])
+end

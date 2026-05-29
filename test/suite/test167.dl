@@ -1,0 +1,22 @@
+var n := 0;
+var m := 0;
+var p := true;
+
+var get_v_ref := func is
+    if p then return n; else return m; end
+end
+get_v_ref() := 1;
+p := false;
+get_v_ref() := 2;
+print n, m
+
+var arr := [0, 0];
+p := true;
+var get_arr_ref := func is
+    if p then return arr[1]; else return arr[2]; end
+end
+get_arr_ref() := 1;
+p := false;
+get_arr_ref() := 2;
+
+print arr

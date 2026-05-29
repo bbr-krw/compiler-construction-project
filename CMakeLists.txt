@@ -103,7 +103,7 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 # Maximum test number in the suite (exclusive upper bound for ::testing::Range)
-set(SUITE_MAX_TEST 166)
+set(SUITE_MAX_TEST 168)
 
 # ── Lexer suite tests ──────────────────────────────────────────────────────────
 add_executable(lexer_suite_tests test/lexer_suite_test.cpp)
