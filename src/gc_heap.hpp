@@ -93,20 +93,20 @@ public:
     HeapObject* none;
 
     Heap(size_t size) : arena(new std::uint8_t[size]), arena_size(size) {
-        none = new HeapObject(Type::None);
+        none = new (allocate(sizeof(HeapObject))) HeapObject(Type::None);
     }
     ~Heap() { delete[] arena; }
     std::uint8_t* ptr = arena + arena_size;
 
-    std::uint8_t* allocate(size_t size) { return ptr -= size; }
+    std::uint8_t* allocate(size_t size) { return ptr = reinterpret_cast<std::uint8_t*>(std::uintptr_t(ptr - size) & std::uintptr_t(~7)); }
 
     HeapObject* make_none() { return none; }
 
-    DInt* make_int(int value) { return new DInt{value}; }
+    DInt* make_int(int value) { return new (allocate(sizeof(DInt))) DInt(value); }
 
-    DReal* make_real(float value) { return new DReal{value}; }
+    DReal* make_real(float value) { return new (allocate(sizeof(DReal))) DReal(value); }
 
-    DBool* make_bool(bool value) { return new DBool{value}; }
+    DBool* make_bool(bool value) { return new (allocate(sizeof(DBool))) DBool(value); }
 
     DString* make_string(const std::string& str) {
         return new (allocate(sizeof(DString) + str.size() + 1)) DString(str);

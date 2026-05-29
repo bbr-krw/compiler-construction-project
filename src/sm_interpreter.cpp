@@ -11,6 +11,7 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
+#include <print>
 
 namespace sm {
 
@@ -223,8 +224,16 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             }
 
             heap.replace_array_data(
-                darray, std::pair<size_t, DRef*>{raw_index, heap.make_ref(runtime->none_obj)});
-            frame.push(heap.make_none());
+                darray, std::pair<size_t, DRef*>{raw_index, 
+                    heap.make_ref(heap.none)});
+            raw_array = darray->data->elements;
+            for (size_t i = 0; i < darray->data->size; i++) {
+                if (raw_array[i].first == raw_index) {
+                    frame.push(raw_array[i].second);
+                    goto found;
+                }
+            }
+            __builtin_unreachable();
         found:
             break;
         }
@@ -330,7 +339,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             HeapObject* src  = resolve_ref(frame.pop());
             HeapObject* dest = frame.pop();
             if (dest->type != Type::Ref) {
-                throw std::runtime_error("assignment to non-ref object");
+                throw std::runtime_error("assignment to non-ref object at bytecode index " + std::to_string(bc_index));
             }
             change_ref(dest, src);
             break;
@@ -532,7 +541,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             bc_index = runtime->stack.top().return_index;
             runtime->stack.pop();
             if (not runtime->stack.empty()) {
-                runtime->stack.top().push(runtime->none_obj);
+                runtime->stack.top().push(heap.none);
             } else {
                 return;
             }

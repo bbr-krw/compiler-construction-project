@@ -268,6 +268,7 @@ void BcCompiler::visit(const TupleLitNode& t) {
             scheme.field_names.push_back(bc_file.addString(elem->elem_name));
         }
     }
+    std::reverse(scheme.field_names.begin(), scheme.field_names.end());
 
     const size_t scheme_index = bc_file.tuples.size();
     bc_file.tuples.push_back(scheme);

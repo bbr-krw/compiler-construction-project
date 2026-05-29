@@ -42,6 +42,9 @@ HeapObject* resolve_ref(HeapObject* val) {
 
 void change_ref(HeapObject* ref, HeapObject* val) {
     assert(ref->type == Type::Ref);
+    while (reinterpret_cast<DRef*>(ref)->ref->type == Type::Ref) {
+        ref = reinterpret_cast<DRef*>(ref)->ref;
+    }
     reinterpret_cast<DRef*>(ref)->ref = val;
 }
 
@@ -101,7 +104,7 @@ void Runtime::print(HeapObject* value, std::ostream& os) {
                 os << ", ";
             }
             // os << key << ":";
-            print(value, os);
+            print(resolve_ref(value), os);
         }
         os << "]";
         break;
@@ -120,7 +123,7 @@ void Runtime::print(HeapObject* value, std::ostream& os) {
                 os << bc_file->strings[name_index];
                 os << " := ";
             }
-            print(value, os);
+            print(resolve_ref(value), os);
         }
         os << "}";
         break;

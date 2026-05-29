@@ -23,7 +23,6 @@ struct Runtime {
     const BcFile* bc_file;
     Heap heap{1024 * 1024 * 100}; // 100 MB heap
     std::stack<Frame> stack;
-    HeapObject* none_obj = new HeapObject();
 
     void print(HeapObject* value, std::ostream& out);
 
