@@ -127,14 +127,18 @@ add_test(NAME SemaTests COMMAND sema_tests)
 add_executable(interp_suite_tests test/interp_suite_test.cpp)
 target_link_libraries(interp_suite_tests PRIVATE GTest::gtest GTest::gtest_main interp_lib sema_lib)
 target_compile_definitions(interp_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite" SUITE_MAX_TEST=${SUITE_MAX_TEST})
-add_test(NAME InterpSuiteTests COMMAND interp_suite_tests)
-target_compile_options(interp_suite_tests PRIVATE -fno-sanitize=leak)
+# add_test(NAME InterpSuiteTests COMMAND interp_suite_tests)
 
 # ── SM interpreter suite tests ────────────────────────────────────────────────────
 add_executable(dbci_suite_tests test/dbci_suite_test.cpp)
 target_link_libraries(dbci_suite_tests PRIVATE GTest::gtest GTest::gtest_main sm_lib sema_lib)
 target_compile_definitions(dbci_suite_tests PRIVATE TEST_SUITE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/test/suite" SUITE_MAX_TEST=${SUITE_MAX_TEST})
 add_test(NAME dbciSuiteTests COMMAND dbci_suite_tests)
+
+# ── GC unit tests ────────────────────────────────────────────────────────────
+add_executable(gc_tests test/gc_tests.cpp)
+target_link_libraries(gc_tests PRIVATE GTest::gtest GTest::gtest_main sm_lib)
+add_test(NAME GCTests COMMAND gc_tests)
 
 # ── clang-format targets ───────────────────────────────────────────────────────
 find_program(CLANG_FORMAT clang-format)

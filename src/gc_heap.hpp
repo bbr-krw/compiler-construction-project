@@ -128,6 +128,32 @@ public:
     }
     ~Heap() { delete[] arena; }
 
+    size_t used_bytes() const { return static_cast<size_t>(from_space.ptr - from_space.begin); }
+    size_t free_bytes() const { return static_cast<size_t>(from_space.end - from_space.ptr); }
+    size_t to_used_bytes() const { return static_cast<size_t>(to_space.ptr - to_space.begin); }
+
+    size_t count_objects_in_from() const {
+        size_t count = 0;
+        std::uint8_t* cur = from_space.begin;
+        while (cur < from_space.ptr) {
+            HeapObject* obj = reinterpret_cast<HeapObject*>(cur);
+            ++count;
+            cur += get_total_size(obj);
+        }
+        return count;
+    }
+
+    size_t count_objects_in_to() const {
+        size_t count = 0;
+        std::uint8_t* cur = to_space.begin;
+        while (cur < to_space.ptr) {
+            HeapObject* obj = reinterpret_cast<HeapObject*>(cur);
+            ++count;
+            cur += get_total_size(obj);
+        }
+        return count;
+    }
+
     std::uint8_t* allocate(size_t size) {
         if (from_space.ptr + align_size(size) > from_space.end) {
             collect();

@@ -182,8 +182,6 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
                     throw std::runtime_error("unsupported binop operand type");
                 }
             }
-            case Type::ArrayData:
-                throw std::runtime_error("binop with array data");
             }
 
             break;
