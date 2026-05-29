@@ -9,9 +9,9 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <print>
 #include <stdexcept>
 #include <vector>
-#include <print>
 
 namespace sm {
 
@@ -22,9 +22,8 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
     HeapObject* return_value;
 
     const auto* main_scheme = &bc_file.functions[bc_file.main_function_index];
-    Frame initial_frame(runtime, main_scheme, std::numeric_limits<size_t>::max());
 
-    runtime->stack.push(initial_frame);
+    runtime->stack.emplace_back(runtime, main_scheme, std::numeric_limits<size_t>::max());
 
     size_t bc_index = 0;
 
@@ -33,7 +32,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             break;
         }
 
-        Frame& frame = runtime->stack.top();
+        Frame& frame = runtime->stack.back();
 
         Bytecode bc = frame.scheme->code[bc_index];
         bool jumped = false;
@@ -183,6 +182,8 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
                     throw std::runtime_error("unsupported binop operand type");
                 }
             }
+            case Type::ArrayData:
+                throw std::runtime_error("binop with array data");
             }
 
             break;
@@ -223,9 +224,8 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
                 }
             }
 
-            heap.replace_array_data(
-                darray, std::pair<size_t, DRef*>{raw_index, 
-                    heap.make_ref(heap.none)});
+            heap.replace_array_data(darray,
+                                    std::pair<size_t, DRef*>{raw_index, heap.make_ref(heap.none)});
             raw_array = darray->data->elements;
             for (size_t i = 0; i < darray->data->size; i++) {
                 if (raw_array[i].first == raw_index) {
@@ -339,7 +339,8 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             HeapObject* src  = resolve_ref(frame.pop());
             HeapObject* dest = frame.pop();
             if (dest->type != Type::Ref) {
-                throw std::runtime_error("assignment to non-ref object at bytecode index " + std::to_string(bc_index));
+                throw std::runtime_error("assignment to non-ref object at bytecode index " +
+                                         std::to_string(bc_index));
             }
             change_ref(dest, src);
             break;
@@ -412,9 +413,9 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             bc_index = frame.return_index;
             jumped   = true;
 
-            runtime->stack.pop();
+            runtime->stack.pop_back();
             if (not runtime->stack.empty()) {
-                runtime->stack.top().push(return_value);
+                runtime->stack.back().push(return_value);
             }
 
             break;
@@ -512,8 +513,7 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             }
             std::vector<DRef*> capture(raw_func->capture,
                                        raw_func->capture + raw_func->scheme->capture.size());
-            Frame new_frame(runtime, raw_func->scheme, bc_index + 1, args, capture);
-            runtime->stack.push(new_frame);
+            runtime->stack.emplace_back(runtime, raw_func->scheme, bc_index + 1, args, capture);
 
             bc_index = 0;
             jumped   = true;
@@ -537,11 +537,11 @@ void interprete(Runtime* runtime, const BcFile& bc_file, std::ostream& out) {
             bc_index++;
         }
 
-        while (bc_index == runtime->stack.top().scheme->code.size()) {
-            bc_index = runtime->stack.top().return_index;
-            runtime->stack.pop();
+        while (bc_index == runtime->stack.back().scheme->code.size()) {
+            bc_index = runtime->stack.back().return_index;
+            runtime->stack.pop_back();
             if (not runtime->stack.empty()) {
-                runtime->stack.top().push(heap.none);
+                runtime->stack.back().push(heap.none);
             } else {
                 return;
             }

@@ -24,7 +24,7 @@ struct Location {
 
 std::ostream& operator<<(std::ostream& os, const Location& loc);
 
-enum class Type : uint8_t { None, Int, Real, Bool, String, Array, Tuple, Func, Ref };
+enum class Type : uint8_t { None, Int, Real, Bool, String, Array, Tuple, Func, Ref, ArrayData };
 std::ostream& operator<<(std::ostream&, const Type&);
 
 uint32_t packLock(Location loc);

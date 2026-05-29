@@ -6,8 +6,6 @@
 #include <format>
 #include <stdexcept>
 
-// ── DValue helpers ─────────────────────────────────────────────────────────────
-
 std::string DValue::to_string() const {
     switch (type) {
     case Type::None:
@@ -56,8 +54,6 @@ bool DValue::is_truthy() const {
     throw std::runtime_error("non-boolean value used in boolean context");
 }
 
-// ── Interpreter ────────────────────────────────────────────────────────────────
-
 Interpreter::Interpreter(std::ostream& out) : out_{out} {}
 
 void Interpreter::run(const ASTNode& root) {
@@ -65,14 +61,12 @@ void Interpreter::run(const ASTNode& root) {
     env_.clear();
     push_frame();
     root.accept(*this);
-    // Break shared_ptr reference cycles: closures capture env frames by
-    // shared_ptr, and those frames may store the same closures as variables.
-    // Clear values first (dropping closure→frame refs), then release frames.
+
     val_ = {};
     for (auto& frame : env_)
         frame->clear();
     env_.clear();
-    heap_.collect({}, {}); // final pass: free all remaining heap objects
+    heap_.collect({}, {});
     g_heap = nullptr;
 }
 
@@ -113,8 +107,6 @@ DValue Interpreter::eval(const ASTNode& node) {
     return std::move(val_);
 }
 
-// ── Statements ─────────────────────────────────────────────────────────────────
-
 void Interpreter::visit(const ProgramNode& n) {
     for (const auto& s : n.stmts) {
         maybe_gc();
@@ -124,7 +116,7 @@ void Interpreter::visit(const ProgramNode& n) {
 
 void Interpreter::visit(const BodyNode& n) {
     push_frame();
-    // RAII: always pop frame even when exception propagates
+
     struct Guard {
         Interpreter& i;
         ~Guard() { i.pop_frame(); }
@@ -139,11 +131,10 @@ void Interpreter::visit(const VarDeclNode& n) {
 }
 
 void Interpreter::visit(const VarDefNode& n) {
-    // Mirror semantic analyzer: pre-declare func-literal initialisers so the
-    // closure can capture a frame that already contains the variable slot.
+
     const bool is_func_init = n.init && dynamic_cast<const FuncLitNode*>(n.init.get()) != nullptr;
     if (is_func_init)
-        declare(n.varname); // initially none
+        declare(n.varname);
     DValue v = n.init ? eval(*n.init) : DValue{};
     if (is_func_init)
         lookup_ref(n.varname) = std::move(v);
@@ -220,7 +211,7 @@ void Interpreter::visit(const ForRangeNode& n) {
     const long long from = eval(*n.from).ival;
     const long long to   = eval(*n.to).ival;
 
-    push_frame(); // scope for iterator variable
+    push_frame();
     struct Guard {
         Interpreter& i;
         ~Guard() { i.pop_frame(); }
@@ -234,14 +225,13 @@ void Interpreter::visit(const ForRangeNode& n) {
         } catch (ExitSignal&) {
             return;
         }
-        // ReturnSignal propagates through; Guard ensures iter frame is popped
     }
 }
 
 void Interpreter::visit(const ForIterNode& n) {
     DValue iterable = eval(*n.iterable);
 
-    push_frame(); // scope for iterator variable
+    push_frame();
     struct Guard {
         Interpreter& i;
         ~Guard() { i.pop_frame(); }
@@ -296,8 +286,6 @@ void Interpreter::visit(const PrintNode& n) {
     }
     out_ << '\n';
 }
-
-// ── Expressions ─────────────────────────────────────────────────────────────────
 
 void Interpreter::visit(const IntLitNode& n) {
     val_ = DValue::make_int(n.value);
@@ -377,7 +365,7 @@ DValue Interpreter::call_func(const DValue& fv, std::vector<DValue> args) {
 
     Env saved = std::move(env_);
     env_      = closure.captured_env;
-    push_frame(); // frame for parameters
+    push_frame();
 
     if (fn.params) {
         const auto& pl = static_cast<const ParamListNode&>(*fn.params);
@@ -389,12 +377,11 @@ DValue Interpreter::call_func(const DValue& fv, std::vector<DValue> args) {
 
     DValue result;
     try {
-        fn.body->accept(*this); // BodyNode pushes/pops its own frame
+        fn.body->accept(*this);
     } catch (ReturnSignal& r) {
         result = std::move(r.value);
     }
-    // env_ may have had frames popped by BodyNode guards on exception path,
-    // but we unconditionally replace it anyway:
+
     env_ = std::move(saved);
     return result;
 }
@@ -475,15 +462,13 @@ void Interpreter::visit(const IsNode& n) {
     val_ = DValue::make_bool(ok);
 }
 
-// ── Helper: floor division (spec: integer/integer rounds down) ─────────────────
 static long long floor_div(long long a, long long b) {
     long long q = a / b;
     if (a % b != 0 && (a ^ b) < 0)
-        --q; // adjust when signs differ
+        --q;
     return q;
 }
 
-// ── Numeric coercion helpers ───────────────────────────────────────────────────
 static double to_real(const DValue& v) {
     if (v.type == DValue::Type::Int)
         return static_cast<double>(v.ival);
@@ -503,7 +488,6 @@ void Interpreter::visit(const BinOpNode& n) {
     using T  = DValue::Type;
     using Op = BinOpNode::Op;
 
-    // Short-circuit logical operators
     if (n.op == Op::AND) {
         val_ = DValue::make_bool(eval(*n.left).is_truthy() && eval(*n.right).is_truthy());
         return;
@@ -570,7 +554,6 @@ void Interpreter::visit(const BinOpNode& n) {
             throw std::runtime_error("invalid operands for /");
         break;
 
-    // Comparisons
     case Op::LT:
         if (is_numeric(L) && is_numeric(R))
             val_ = DValue::make_bool(to_real(L) < to_real(R));

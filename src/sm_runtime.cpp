@@ -25,11 +25,13 @@ float get_float(HeapObject* value) {
 
 void Frame::push(HeapObject* value) {
     stack.push_back(value);
+    runtime->heap.roots.push_back(&stack.back());
 }
 
 HeapObject* Frame::pop() {
     HeapObject* value = stack.back();
     stack.pop_back();
+    runtime->heap.roots.pop_back();
     return value;
 }
 
@@ -138,6 +140,8 @@ void Runtime::print(HeapObject* value, std::ostream& os) {
         os << "__ref__";
         break;
     }
+    case Type::ArrayData:
+        __builtin_unreachable();
     }
 }
 
